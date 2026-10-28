@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ctr-nirmal-kumar-portal
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: OTP_SECRET
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_APP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        value: CTR Nirmal Kumar Citizen Portal <ironkyle007@gmail.com>
+      - key: OTP_DEV_MODE
+        value: "false"
