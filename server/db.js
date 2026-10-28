@@ -7,47 +7,94 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const dbConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'ctr_nirmal_kumar',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  charset: 'utf8mb4'
-};
+function getResolvedDbConfig() {
+  let host = process.env.DB_HOST || '127.0.0.1';
+  let port = parseInt(process.env.DB_PORT || '3306', 10);
+  let user = process.env.DB_USER || 'root';
+  let password = process.env.DB_PASSWORD || '';
+  let database = process.env.DB_NAME || 'ctr_nirmal_kumar';
+  let useSsl = process.env.DB_SSL === 'true' || process.env.DB_SSL === '1';
 
+  if (process.env.DATABASE_URL) {
+    try {
+      const parsedUrl = new URL(process.env.DATABASE_URL);
+      if (parsedUrl.hostname) host = parsedUrl.hostname;
+      if (parsedUrl.port) port = parseInt(parsedUrl.port, 10);
+      if (parsedUrl.username) user = decodeURIComponent(parsedUrl.username);
+      if (parsedUrl.password) password = decodeURIComponent(parsedUrl.password);
+      if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
+        database = decodeURIComponent(parsedUrl.pathname.replace(/^\//, ''));
+      }
+      if (parsedUrl.searchParams.get('ssl-mode') || parsedUrl.searchParams.get('ssl')) {
+        useSsl = true;
+      }
+    } catch (urlErr) {
+      console.warn('[Database] Could not parse DATABASE_URL, falling back to individual DB_* vars:', urlErr.message);
+    }
+  }
+
+  // Auto-enable SSL for cloud databases (e.g. Aiven, RDS, DigitalOcean, PlanetScale)
+  if (!useSsl && host && !['127.0.0.1', 'localhost'].includes(host.toLowerCase())) {
+    useSsl = true;
+  }
+
+  const config = {
+    host,
+    port,
+    user,
+    password,
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    charset: 'utf8mb4'
+  };
+
+  if (useSsl) {
+    config.ssl = { rejectUnauthorized: false };
+  }
+
+  return config;
+}
+
+let dbConfig = getResolvedDbConfig();
 let pool = null;
 let isConnected = false;
 let lastDbError = null;
 
 export async function initDatabase() {
   try {
-    // 1. First connect to MySQL server without specific database to ensure DB exists
-    const rootConn = await mysql.createConnection({
-      host: dbConfig.host,
-      port: dbConfig.port,
-      user: dbConfig.user,
-      password: dbConfig.password
-    });
+    dbConfig = getResolvedDbConfig();
 
-    await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-    await rootConn.end();
+    // For local MySQL, ensure database exists; for cloud MySQL, connect directly
+    const isLocalhost = ['127.0.0.1', 'localhost'].includes(dbConfig.host.toLowerCase());
+    if (isLocalhost) {
+      try {
+        const rootConn = await mysql.createConnection({
+          host: dbConfig.host,
+          port: dbConfig.port,
+          user: dbConfig.user,
+          password: dbConfig.password
+        });
+        await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+        await rootConn.end();
+      } catch {
+        // Fall through if user lacks global CREATE privilege or DB already exists
+      }
+    }
 
-    // 2. Initialize connection pool targeting our database
+    // Initialize connection pool targeting our database
     pool = mysql.createPool(dbConfig);
     const testConn = await pool.getConnection();
     await testConn.ping();
     testConn.release();
 
-    // 3. Create required tables if they don't exist
+    // Create or verify required tables
     await createTables();
 
     isConnected = true;
     lastDbError = null;
-    console.log(`[Database] Connected successfully to MySQL database "${dbConfig.database}" at ${dbConfig.host}:${dbConfig.port}`);
+    console.log(`[Database] Connected successfully to MySQL database "${dbConfig.database}" at ${dbConfig.host}:${dbConfig.port}${dbConfig.ssl ? ' (SSL enabled)' : ''}`);
     return true;
   } catch (error) {
     isConnected = false;
@@ -177,17 +224,10 @@ async function createTables() {
 
 export async function getPool() {
   if (!pool || !isConnected) {
-    // Reload dotenv in case user updated DB_PASSWORD or DB_USER in .env
     dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
-    dbConfig.host = process.env.DB_HOST || '127.0.0.1';
-    dbConfig.port = parseInt(process.env.DB_PORT || '3306', 10);
-    dbConfig.user = process.env.DB_USER || 'root';
-    dbConfig.password = process.env.DB_PASSWORD || '';
-    dbConfig.database = process.env.DB_NAME || 'ctr_nirmal_kumar';
-
     const connected = await initDatabase();
     if (!connected || !pool) {
-      throw new Error(`Database connection failed: ${lastDbError || 'Cannot connect to MySQL server at ' + dbConfig.host + ':' + dbConfig.port + '. Please verify DB_USER and DB_PASSWORD in .env'}`);
+      throw new Error(`Database connection failed: ${lastDbError || 'Cannot connect to MySQL server at ' + dbConfig.host + ':' + dbConfig.port + '. Please verify database configuration in .env'}`);
     }
   }
   return pool;
@@ -200,6 +240,7 @@ export function getDbStatus() {
     port: dbConfig.port,
     database: dbConfig.database,
     user: dbConfig.user,
+    ssl: !!dbConfig.ssl,
     error: lastDbError
   };
 }
