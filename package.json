@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "node server/index.js",
     "dev": "concurrently -n \"API,VITE\" -c \"blue,magenta\" \"npm run server\" \"npm run client\"",
     "server": "node server/index.js",
     "client": "vite",
