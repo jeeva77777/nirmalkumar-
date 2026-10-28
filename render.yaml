@@ -3,8 +3,10 @@ services:
     name: ctr-nirmal-kumar-portal
     env: node
     plan: free
+    region: singapore
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,3 +26,4 @@ services:
         value: CTR Nirmal Kumar Citizen Portal <ironkyle007@gmail.com>
       - key: OTP_DEV_MODE
         value: "false"
+

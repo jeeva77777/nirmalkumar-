@@ -759,14 +759,34 @@ app.use((req, res, next) => {
   `);
 });
 
-// Start server and initialize database
-async function startServer() {
-  await initDatabase();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Server] CTR Nirmal Kumar Backend API running on http://127.0.0.1:${PORT}`);
+// Start server immediately on 0.0.0.0 and PORT to guarantee instant port binding on Render
+function startServer() {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] CTR Nirmal Kumar Backend API running on port ${PORT}`);
     const smtpStatus = getSmtpStatus();
     console.log(`[SMTP] Status: ${smtpStatus.status} (Host: ${smtpStatus.host}:${smtpStatus.port}, User: ${smtpStatus.senderEmail})`);
   });
+
+  // Render Load Balancer compatibility: keep-alive > 90s prevents 502 Bad Gateway errors
+  server.keepAliveTimeout = 120 * 1000;
+  server.headersTimeout = 125 * 1000;
+
+  // Initialize database concurrently
+  initDatabase().catch((dbErr) => {
+    console.error('[Database Error during startup]:', dbErr.message);
+  });
+
+  // Graceful shutdown handling for Render zero-downtime deploys
+  const gracefulShutdown = (signal) => {
+    console.log(`[Server] Received ${signal}, closing server gracefully...`);
+    server.close(() => {
+      console.log('[Server] HTTP connections closed.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 startServer();
