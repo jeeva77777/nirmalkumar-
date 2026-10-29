@@ -2814,19 +2814,126 @@ main[lang="ta"] .portal-secondary {
     width: 100%;
   }
 
+  /* ============================================================
+     ABOUT SECTION - MOBILE RESPONSIVE OPTIMIZATIONS
+     ============================================================ */
   .about-section {
     grid-template-columns: 1fr;
-    gap: 40px;
-    padding-top: 70px;
-    padding-bottom: 80px;
+    gap: 36px;
+    padding-top: 56px;
+    padding-bottom: 64px;
+    overflow-x: clip;
   }
 
   .about-image-column {
-    padding-right: 0;
+    padding: 24px 8px 0 0;
+    max-width: 520px;
+    margin: 0 auto;
+    width: 100%;
   }
 
   .about-image-frame {
-    height: min(95vw, 400px);
+    height: clamp(230px, 60vw, 350px);
+    margin-top: 18px;
+    border-radius: 14px;
+  }
+
+  /* Keep decorative gold border contained within viewport without overflow */
+  .about-image-frame::before {
+    top: -8px;
+    left: 8px;
+    width: calc(100% - 16px);
+    height: 100%;
+    border-width: 1.5px;
+    border-radius: 14px;
+  }
+
+  .about-image-frame img {
+    border-radius: 14px;
+    object-position: 50% 25%;
+  }
+
+  /* Keep circular stamp inside the image boundaries on mobile */
+  .image-stamp {
+    right: 12px;
+    bottom: 12px;
+    width: 66px;
+    height: 66px;
+    font-size: 9.5px;
+    line-height: 1.2;
+    box-shadow: 0 6px 18px rgba(226, 175, 39, 0.4);
+  }
+
+  .image-note {
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin-top: 14px;
+    text-align: center;
+    padding: 0 10px;
+  }
+
+  .about-copy {
+    max-width: 620px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .about-copy .eyebrow {
+    font-size: 10.5px;
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+
+  .about-copy h2 {
+    font-size: clamp(28px, 6.8vw, 38px);
+    line-height: 1.18;
+    margin-bottom: 18px;
+  }
+
+  .about-copy>p.lead {
+    font-size: 15.5px;
+    line-height: 1.75;
+    margin-bottom: 14px;
+  }
+
+  .about-copy>p {
+    font-size: 14px;
+    line-height: 1.75;
+    margin-bottom: 16px;
+  }
+
+  /* Education block: single column stack on mobile for clear readability */
+  .education-block {
+    margin-top: 24px;
+    padding: 18px 16px;
+    border-radius: 12px;
+  }
+
+  .education-heading {
+    font-size: 11px;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .education-items {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 0;
+  }
+
+  .education-items>div {
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  .education-items strong {
+    font-size: 16px;
+    min-width: 44px;
+  }
+
+  .education-items span {
+    font-size: 12.5px;
+    line-height: 1.5;
   }
 
   .section-heading {
@@ -2902,6 +3009,46 @@ main[lang="ta"] .portal-secondary {
     width: 35px;
     height: 35px;
     padding: 6px;
+  }
+
+  .about-section {
+    padding-top: 48px;
+    padding-bottom: 54px;
+    gap: 28px;
+  }
+
+  .about-image-frame {
+    height: clamp(210px, 58vw, 290px);
+  }
+
+  .image-stamp {
+    right: 8px;
+    bottom: 8px;
+    width: 58px;
+    height: 58px;
+    font-size: 8.5px;
+  }
+
+  .about-copy h2 {
+    font-size: clamp(25px, 6.5vw, 32px);
+  }
+
+  .education-block {
+    padding: 14px 12px;
+  }
+
+  .education-items>div {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .education-items strong {
+    font-size: 15px;
+    min-width: 38px;
+  }
+
+  .education-items span {
+    font-size: 12px;
   }
 }
 
