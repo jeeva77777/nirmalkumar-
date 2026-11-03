@@ -338,53 +338,6 @@ export default function PoliticalPage() {
     }
   ];
 
-  const officeSocialCards = [
-    {
-      platform: "Facebook",
-      handle: "@Office of Nirmal Kumar",
-      url: "https://www.facebook.com/CTR.NirmalKumar",
-      icon: (
-        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
-          <circle cx="24" cy="24" r="24" fill="#1877F2" />
-          <path d="M28.5 24.5H24.5V36H19.5V24.5H16.5V20.5H19.5V17.8C19.5 14.8 21.3 13 24.2 13H28.5V17H26C24.7 17 24.5 17.6 24.5 18.5V20.5H28.5L28.5 24.5Z" fill="white" />
-        </svg>
-      )
-    },
-    {
-      platform: "Instagram",
-      handle: "@officeofctrnirmalkumar",
-      url: "https://www.instagram.com/ctr.nirmalkumar",
-      icon: (
-        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
-          <defs>
-            <linearGradient id="igCardGradOffice" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#FFDC80" />
-              <stop offset="25%" stopColor="#F77737" />
-              <stop offset="50%" stopColor="#F56040" />
-              <stop offset="75%" stopColor="#FD1D1D" />
-              <stop offset="100%" stopColor="#833AB4" />
-            </linearGradient>
-          </defs>
-          <rect width="48" height="48" rx="14" fill="url(#igCardGradOffice)" />
-          <rect x="11" y="11" width="26" height="26" rx="7" stroke="white" strokeWidth="2.8" />
-          <circle cx="24" cy="24" r="6.5" stroke="white" strokeWidth="2.8" />
-          <circle cx="31" cy="17" r="2.2" fill="white" />
-        </svg>
-      )
-    },
-    {
-      platform: "X (Twitter)",
-      handle: "@OfficeOfCTRNKL",
-      url: "https://x.com/CTR_Nirmalkumar",
-      icon: (
-        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
-          <rect width="48" height="48" rx="14" fill="#000000" />
-          <path d="M34.5 12H38.5L29.7 22L40 36H32L25.7 27.7L18.5 36H14.5L23.8 25.3L14 12H22.2L28 19.7L34.5 12ZM33.1 33.6H35.3L21.1 14.2H18.7L33.1 33.6Z" fill="white" />
-        </svg>
-      )
-    }
-  ];
-
   useEffect(() => {
     document.documentElement.lang = tamil ? "ta" : "en";
     document.title = tamil ? "சி.டி.ஆர். நிர்மல் குமார் | தமிழ்நாடு அமைச்சர்" : "CTR Nirmal Kumar | Minister for Energy Resources & Law, Tamil Nadu";
@@ -1065,31 +1018,9 @@ export default function PoliticalPage() {
       </div>
 
       <div className="social-cards-container">
-        {/* Row 1: Official Profiles */}
+        {/* Official Profiles */}
         <div className="social-cards-grid">
           {mainSocialCards.map((card, idx) => (
-            <div className="social-media-card" key={idx}>
-              <div className="social-card-icon-wrap">
-                {card.icon}
-              </div>
-              <h3 className="social-card-platform">{card.platform}</h3>
-              <p className="social-card-handle">{card.handle}</p>
-              <a
-                href={card.url}
-                target="_blank"
-                rel="noreferrer"
-                className="social-card-btn"
-              >
-                <span>{tamil ? "பின்தொடர" : "Follow"}</span>
-                <ArrowUpRight size={14} />
-              </a>
-            </div>
-          ))}
-        </div>
-
-        {/* Row 2: Constituency Office Profiles */}
-        <div className="social-cards-grid social-cards-office-grid">
-          {officeSocialCards.map((card, idx) => (
             <div className="social-media-card" key={idx}>
               <div className="social-card-icon-wrap">
                 {card.icon}
