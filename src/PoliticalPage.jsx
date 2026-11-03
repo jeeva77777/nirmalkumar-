@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowDown,
   ArrowRight,
+  ArrowUp,
   ArrowUpRight,
   BriefcaseBusiness,
   Check,
@@ -31,6 +32,21 @@ import "./political.css";
 
 const media = "https://ctrnirmalkumar.com/wp-content/uploads/2026/";
 const stories = [
+  {
+    date: "03 JUL 2026",
+    dateTamil: "03 ஜூலை 2026",
+    category: "COMMUNITY & JUSTICE · MADURAI",
+    categoryTamil: "மக்கள் நீதி & சமூக நலம் · மதுரை",
+    title: "Madurai: 21-Year Temple Pathway Encroachment Cleared — Minister CTR Nirmal Kumar Fulfills Promise",
+    tamil: "மதுரை: 21 ஆண்டு கோயில் பாதை ஆக்கிரமிப்பு அகற்றம்.. அமைச்சர் நிர்மல் குமார் வாக்குறுதி நிறைவேற்றம் !",
+    summary: "Minister CTR Nirmal Kumar resolved a 21-year-old dispute by recovering and opening the temple pathway after clearing long-pending encroachments. Village residents accorded an emotional reception and honored the Minister for delivering on his commitment.",
+    summaryTamil: "21 வருட பிரச்னைக்கு தீர்வு கண்ட அமைச்சர் சிடிஆர் நிர்மல் குமார் — பிரச்னைக்குரிய பாதையை மீட்டு கொடுத்த மாண்புமிகு அமைச்சருக்கு கிராம மக்கள் உணர்ச்சி பொங்க உற்சாக வரவேற்பு அளித்து மரியாதை செலுத்தினர்.",
+    image: "/madurai-temple-pathway-clean.jpg",
+    alt: "CTR Nirmal Kumar with villagers celebrating the 21-year temple pathway resolution in Madurai",
+    altTamil: "மதுரையில் 21 ஆண்டு கோயில் பாதை பிரச்னைக்கு தீர்வு கண்டு மக்களுடன் இருக்கும் அமைச்சர் CTR. நிர்மல் குமார்",
+    caption: "TEMPLE PATHWAY RESTORATION · MADURAI",
+    captionTamil: "கோயில் பாதை மீட்பு · மதுரை"
+  },
   {
     date: "31 OCT 2026",
     dateTamil: "31 அக்டோபர் 2026",
@@ -143,6 +159,8 @@ const stories = [
 
 const getPhotoUrl = (img) => (img.startsWith("/") || img.startsWith("http") ? img : `${media}07/${img}`);
 const gallery = [
+  "/madurai-temple-pathway-clean.jpg",
+  "/madurai-village-affection-baby.jpg",
   "/commercial-taxes-training-institute.png",
   "/chekkanurani-service-moment.png",
   "/theni-welfare-service-moment.jpg",
@@ -164,6 +182,8 @@ export default function PoliticalPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [language, setLanguage] = useState("EN");
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [portalIntent, setPortalIntent] = useState(null);
   const [portalStage, setPortalStage] = useState("petition");
   const [petitionerName, setPetitionerName] = useState("");
@@ -183,6 +203,7 @@ export default function PoliticalPage() {
   const [cooldown, setCooldown] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null);
+  const [activeNews, setActiveNews] = useState(null);
   const [attachedFile, setAttachedFile] = useState(null);
   const tamil = language === "தமிழ்";
   const credentials = tamil ? "CTR. நிர்மல் குமார், B.E., LL.B., M.A." : "CTR. Nirmal Kumar, B.E., LL.B., M.A.";
@@ -381,8 +402,16 @@ export default function PoliticalPage() {
     const onScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const next = window.scrollY > 36;
-          setScrolled((prev) => (prev !== next ? next : prev));
+          const currentY = window.scrollY;
+          const isScrolledPast = currentY > 36;
+          setScrolled((prev) => (prev !== isScrolledPast ? isScrolledPast : prev));
+          setShowBackToTop(currentY > 380);
+
+          const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+          if (maxScroll > 0) {
+            const pct = Math.min(100, Math.max(0, (currentY / maxScroll) * 100));
+            setScrollProgress(pct);
+          }
           ticking = false;
         });
         ticking = true;
@@ -396,13 +425,13 @@ export default function PoliticalPage() {
   useEffect(() => {
     // High-Performance Hardware-Accelerated Scroll-Trigger Reveal
     const sections = Array.from(document.querySelectorAll(
-      ".mandate-strip, .about-section, .portfolio-section, .news-section, .gallery-section, .connect-section, .site-footer"
+      ".mandate-strip, .about-section, .portfolio-section, .mla-office-banner-section, .constituency-map-section, .news-section, .gallery-section, .connect-section, .site-footer"
     ));
     const headings = Array.from(document.querySelectorAll(
-      ".about-copy, .section-heading, .gallery-heading, .connect-copy"
+      ".about-copy, .section-heading, .gallery-heading, .connect-header, .mla-office-details, .constituency-map-header"
     ));
     const cardGrids = Array.from(document.querySelectorAll(
-      ".mandate-strip, .portfolio-grid, .news-grid, .gallery-grid, .social-links, .education-items"
+      ".mandate-strip, .portfolio-grid, .news-grid, .gallery-grid, .social-cards-grid, .education-items"
     ));
 
     sections.forEach((sec) => sec.classList.add("aadhav-section-reveal"));
@@ -426,6 +455,15 @@ export default function PoliticalPage() {
 
     const allTargets = [...sections, ...headings, ...itemElements];
 
+    // Immediately activate elements already in view to prevent flicker
+    const windowH = window.innerHeight;
+    allTargets.forEach((target) => {
+      const rect = target.getBoundingClientRect();
+      if (rect.top < windowH + 120) {
+        target.classList.add("is-inview");
+      }
+    });
+
     if (!("IntersectionObserver" in window)) {
       allTargets.forEach((el) => el.classList.add("is-inview"));
       return undefined;
@@ -441,12 +479,16 @@ export default function PoliticalPage() {
         });
       },
       {
-        threshold: 0.01,
-        rootMargin: "80px 0px 80px 0px"
+        threshold: 0.02,
+        rootMargin: "140px 0px 140px 0px"
       }
     );
 
-    allTargets.forEach((target) => observer.observe(target));
+    allTargets.forEach((target) => {
+      if (!target.classList.contains("is-inview")) {
+        observer.observe(target);
+      }
+    });
 
     return () => {
       observer.disconnect();
@@ -454,11 +496,12 @@ export default function PoliticalPage() {
   }, [language]);
 
   useEffect(() => {
-    if (!portalIntent && !activePhoto) return undefined;
+    if (!portalIntent && !activePhoto && !activeNews) return undefined;
     const previousOverflow = document.body.style.overflow;
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
-        if (activePhoto) setActivePhoto(null);
+        if (activeNews) setActiveNews(null);
+        else if (activePhoto) setActivePhoto(null);
         else closePortal();
       }
     };
@@ -468,7 +511,7 @@ export default function PoliticalPage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [portalIntent, activePhoto]);
+  }, [portalIntent, activePhoto, activeNews]);
 
   const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || "").trim());
   const isValidIndianMobile = (p) => !p || /^[6-9]\d{9}$/.test((p || "").replace(/\D/g, ""));
@@ -851,6 +894,9 @@ export default function PoliticalPage() {
   };
 
   return <main lang={tamil ? "ta" : "en"}>
+    {/* Dynamic Glowing Gold/Maroon Reading Progress Bar */}
+    <div className="scroll-progress-bar" style={{ width: `${scrollProgress}%` }} aria-hidden="true" />
+
     <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
       <a className="brand" href="#home" aria-label={copy.homeLabel}><img className="brand-symbol" src="/hero-thalaivar.png" alt={tamil ? "கழகத் தலைவர் சின்னம்" : "Party Leader Emblem"} /><span className="brand-name">{tamil ? "CTR. நிர்மல் குமார்" : "CTR. NIRMAL KUMAR"}<small>{copy.brandSubtitle}</small></span></a>
       <nav className={menuOpen ? "navigation is-open" : "navigation"} aria-label={copy.navigationLabel}>
@@ -978,16 +1024,39 @@ export default function PoliticalPage() {
 
     <section className="news-section section-pad" id="news"><div className="section-heading news-heading"><div><span className="eyebrow">{copy.newsEyebrow}</span><h2>{copy.newsTitle} <em>{copy.newsBottom}</em></h2></div><span className="section-badge-pill">{tamil ? "செய்திப் பதிவுகள்" : "Official Updates"}</span></div>
       <div className="news-grid">{stories.map((item, index) => {
-        return <article className="news-card news-card-featured" key={item.title}>
-          <div className={`news-image${item.portrait ? " news-image-portrait" : ""}`}>
-            <img src={item.image} alt={tamil ? item.altTamil : item.alt} loading="lazy" decoding="async" />
-            <span className="news-number">0{index + 1}</span>
-          </div>
-          <div className="news-meta"><span>{tamil ? item.dateTamil : item.date}</span><span>{tamil ? item.categoryTamil ?? copy.publicUpdate : item.category ?? copy.publicUpdate}</span></div>
-          <h3>{tamil ? item.tamil : item.title}</h3>
-          <p className="news-story-summary">{tamil ? item.summaryTamil : item.summary}</p>
-          <span className="news-read news-story-note">{tamil ? item.captionTamil : item.caption}</span>
-        </article>;
+        return (
+          <article
+            className="news-card news-card-featured"
+            key={item.title}
+            onClick={() => setActiveNews(item)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveNews(item); } }}
+            aria-label={tamil ? `${item.tamil} - முழு விவரம் வாசிக்க கிளிக் செய்க` : `${item.title} - Click to read full article`}
+          >
+            <div className={`news-image${item.portrait ? " news-image-portrait" : ""}`}>
+              <img src={item.image} alt={tamil ? item.altTamil : item.alt} loading="lazy" decoding="async" />
+              <span className="news-number">0{index + 1}</span>
+              <div className="news-image-overlay-pill">
+                <span>{tamil ? "முழு செய்தி வாசிக்க" : "Read Article"} <ArrowUpRight size={13} /></span>
+              </div>
+            </div>
+            <div className="news-meta">
+              <span>{tamil ? item.dateTamil : item.date}</span>
+              <span>{tamil ? item.categoryTamil ?? copy.publicUpdate : item.category ?? copy.publicUpdate}</span>
+            </div>
+            <h3 className="news-card-title">{tamil ? item.tamil : item.title}</h3>
+            <div className="news-card-footer">
+              <span className="news-read-action">
+                <span>{tamil ? "முழு விவரம்" : "Read Full Story"}</span>
+                <ArrowUpRight size={14} />
+              </span>
+              {item.caption && (
+                <span className="news-card-caption-tag">{tamil ? item.captionTamil : item.caption}</span>
+              )}
+            </div>
+          </article>
+        );
       })}</div>
     </section>
 
@@ -1624,5 +1693,79 @@ export default function PoliticalPage() {
         </div>
       </div>
     )}
+    {activeNews && (
+      <div
+        className="news-modal-backdrop"
+        onClick={() => setActiveNews(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="news-modal-title"
+      >
+        <div className="news-modal-dialog" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="news-modal-close"
+            onClick={() => setActiveNews(null)}
+            aria-label={tamil ? "மூடவும்" : "Close"}
+          >
+            <X size={20} />
+          </button>
+
+          <div className="news-modal-image-wrapper">
+            <img
+              src={activeNews.image}
+              alt={tamil ? activeNews.altTamil : activeNews.alt}
+              className="news-modal-image"
+            />
+            {activeNews.caption && (
+              <span className="news-modal-image-caption">
+                {tamil ? activeNews.captionTamil : activeNews.caption}
+              </span>
+            )}
+          </div>
+
+          <div className="news-modal-body">
+            <div className="news-modal-meta-row">
+              <span className="news-modal-category-badge">
+                {tamil ? activeNews.categoryTamil ?? copy.publicUpdate : activeNews.category ?? copy.publicUpdate}
+              </span>
+              <span className="news-modal-date-tag">
+                {tamil ? activeNews.dateTamil : activeNews.date}
+              </span>
+            </div>
+
+            <h2 id="news-modal-title" className="news-modal-title">
+              {tamil ? activeNews.tamil : activeNews.title}
+            </h2>
+
+            <div className="news-modal-content">
+              <p>{tamil ? activeNews.summaryTamil : activeNews.summary}</p>
+            </div>
+
+            <div className="news-modal-footer">
+              <button
+                type="button"
+                className="news-modal-close-btn"
+                onClick={() => setActiveNews(null)}
+              >
+                <span>{tamil ? "மூடவும்" : "Close Article"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Floating Back-To-Top Luxury Pill */}
+    <button
+      type="button"
+      className={`floating-back-to-top${showBackToTop ? " is-visible" : ""}`}
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label={tamil ? "மேலே செல்லவும்" : "Back to top"}
+      title={tamil ? "மேலே செல்லவும்" : "Back to top"}
+    >
+      <ArrowUp size={16} strokeWidth={2.6} />
+      <span>{tamil ? "மேலே" : "Top"}</span>
+    </button>
   </main>;
 }
