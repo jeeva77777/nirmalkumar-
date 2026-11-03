@@ -136,6 +136,9 @@ async function createTables() {
         category VARCHAR(100) DEFAULT 'Public Welfare',
         status ENUM('Received', 'Under Review', 'In Progress', 'Resolved', 'Rejected') DEFAULT 'Received',
         admin_notes TEXT NULL,
+        attachment_name VARCHAR(255) NULL,
+        attachment_type VARCHAR(100) NULL,
+        attachment_data LONGTEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_petitions_ref (reference_no),
@@ -202,6 +205,12 @@ async function createTables() {
         await conn.query(`ALTER TABLE petitions ADD COLUMN email VARCHAR(150) NULL AFTER phone, ADD INDEX idx_petitions_email (email)`);
       }
       await conn.query(`ALTER TABLE petitions MODIFY COLUMN phone VARCHAR(20) NULL`);
+
+      // Migration: Supporting Documents / Attachment fields
+      const [attCols] = await conn.query(`SHOW COLUMNS FROM petitions LIKE 'attachment_name'`);
+      if (attCols.length === 0) {
+        await conn.query(`ALTER TABLE petitions ADD COLUMN attachment_name VARCHAR(255) NULL, ADD COLUMN attachment_type VARCHAR(100) NULL, ADD COLUMN attachment_data LONGTEXT NULL`);
+      }
     } catch (migErr) {
       console.warn('[Database Migration Notice]: petitions schema check:', migErr.message);
     }

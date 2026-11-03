@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import ConstituencyMap from "./ConstituencyMap.jsx";
+import MlaOfficeSection from "./MlaOfficeSection.jsx";
 import {
   AlertCircle,
   ArrowDown,
@@ -8,6 +10,8 @@ import {
   Check,
   ChevronDown,
   Copy,
+  Download,
+  FileText,
   GraduationCap,
   Inbox,
   KeyRound,
@@ -15,15 +19,33 @@ import {
   LogOut,
   Mail,
   Menu,
+  Paperclip,
   Scale,
   ShieldCheck,
   Sun,
+  UploadCloud,
+  Video,
   X
 } from "lucide-react";
 import "./political.css";
 
 const media = "https://ctrnirmalkumar.com/wp-content/uploads/2026/";
 const stories = [
+  {
+    date: "31 OCT 2026",
+    dateTamil: "31 அக்டோபர் 2026",
+    category: "INFRASTRUCTURE & TRAINING · MADURAI",
+    categoryTamil: "உள்கட்டமைப்பு & பயிற்சி நிறுவனம் · மதுரை",
+    title: "Inauguration of Renovated Commercial Taxes Staff Training Institute at ₹3.10 Crore in Madurai",
+    tamil: "மதுரை வடக்கு: ரூ.3.10 கோடி மதிப்பீட்டில் புதுப்பிக்கப்பட்ட வணிகவரித் துறை பணியாளர் பயிற்சி நிறுவனக் கட்டடத்தைத் திறந்து வைத்தார் CTR. நிர்மல் குமார்",
+    summary: "Inaugurated the newly renovated and expanded Commercial Taxes Staff Training Institute building (built at ₹3.10 crore with an additional first floor) at the Commercial Taxes Joint Commissioner Office campus in Madurai North Taluk, joined by MLAs S.R. Thangapandian and A. Kallanai, District Collector Nishanth Krishna IAS, Corporation Commissioner Gaurav Kumar IAS, and key officials.",
+    summaryTamil: "மதுரை மாவட்டம், மதுரை வடக்கு வட்டம், வணிகவரித் துறை இணை ஆணையர் அலுவலக வளாகத்தில் ரூ.3.10 கோடி மதிப்பீட்டில் புதுப்பிக்கப்பட்டு, கூடுதலாக முதல் தளம் கட்டப்பட்டுள்ள வணிகவரித் துறை பணியாளர் பயிற்சி நிறுவனக் கட்டடத்தைக் குத்துவிளக்கு ஏற்றித் திறந்து வைத்துப் பார்வையிட்டார். இந்நிகழ்வில் மதுரை மேற்கு சட்டமன்ற உறுப்பினர் திரு. எஸ்.ஆர். தங்கபாண்டியன், மதுரை வடக்கு சட்டமன்ற உறுப்பினர் திரு. அ. கல்லாணை, மாநகராட்சி துணை மேயர் திரு. தி. நாகராஜன், மதுரை மாவட்ட ஆட்சித் தலைவர் திரு. நிஷாந்த் கிருஷ்ணா, இ.ஆ.ப., மாநகராட்சி ஆணையாளர் திரு. கௌரவ் குமார், இ.ஆ.ப., மாவட்ட வருவாய் அலுவலர் திரு. க. அன்பழகன் உள்ளிட்டோர் உடனிருந்தனர்.",
+    image: "/commercial-taxes-training-institute.png",
+    alt: "CTR Nirmal Kumar inaugurating Commercial Taxes Staff Training Institute in Madurai with MLAs and District Collector",
+    altTamil: "மதுரையில் வணிகவரித் துறை பணியாளர் பயிற்சி நிறுவனக் கட்டடத்தை நாடா வெட்டித் திறந்து வைக்கும் CTR. நிர்மல் குமார்",
+    caption: "COMMERCIAL TAXES INSTITUTE · MADURAI",
+    captionTamil: "வணிகவரித் துறை பயிற்சி நிறுவனம் · மதுரை"
+  },
   {
     date: "24 OCT 2026",
     dateTamil: "24 அக்டோபர் 2026",
@@ -121,6 +143,7 @@ const stories = [
 
 const getPhotoUrl = (img) => (img.startsWith("/") || img.startsWith("http") ? img : `${media}07/${img}`);
 const gallery = [
+  "/commercial-taxes-training-institute.png",
   "/chekkanurani-service-moment.png",
   "/theni-welfare-service-moment.jpg",
   "ctr-nirmal-kumar-tvk-1-1024x501.jpg",
@@ -160,6 +183,7 @@ export default function PoliticalPage() {
   const [cooldown, setCooldown] = useState(0);
   const [copied, setCopied] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null);
+  const [attachedFile, setAttachedFile] = useState(null);
   const tamil = language === "தமிழ்";
   const credentials = tamil ? "CTR. நிர்மல் குமார், B.E., LL.B., M.A." : "CTR. Nirmal Kumar, B.E., LL.B., M.A.";
 
@@ -201,7 +225,17 @@ export default function PoliticalPage() {
     loginTitle: "குடிமக்கள் உள்நுழைவு", loginText: "உங்கள் மின்னஞ்சலை உள்ளிட்டு Gmail SMTP சரிபார்ப்புக் குறியீடு பெற்று உள்நுழையவும்.",
     sendLoginOtp: "உள்நுழைவு OTP பெறுக", verifyAndLogin: "சரிபார்த்து உள்நுழையவும்",
     myPetitionsTitle: "பதிவுசெய்யப்பட்ட மனுக்கள்", noPetitionsYet: "இந்த மின்னஞ்சலில் இதுவரை மனுக்கள் பதிவு செய்யப்படவில்லை.",
-    newPetition: "புதிய மனு அளிக்க", signOut: "வெளியேறு", verifiedCitizen: "சரிபார்க்கப்பட்ட பயனர்"
+    newPetition: "புதிய மனு அளிக்க", signOut: "வெளியேறு", verifiedCitizen: "சரிபார்க்கப்பட்ட பயனர்",
+    attachDocument: "ஆவணங்கள் / புகைப்படங்கள் / வீடியோக்களை இணைக்கவும் (விருப்பத்தேர்வு)",
+    uploadClickText: "கோப்பு, புகைப்படம் அல்லது வீடியோவைத் தேர்ந்தெடுக்க கிளிக் செய்யவும்",
+    uploadFormats: "PDF, JPG, PNG, DOCX, MP4, MOV, WEBM (அதிகபட்சம் 25MB)",
+    attachedBadge: "இணைக்கப்பட்ட கோப்பு:",
+    removeAttachment: "நீக்கு",
+    viewAttachment: "இணைப்பைப் பதிவிறக்கவும்",
+    playVideo: "வீடியோவை இயக்கவும்",
+    hasAttachmentTag: "ஆவணம் / வீடியோ இணைக்கப்பட்டுள்ளது",
+    fileTooLarge: "கோப்பின் அளவு 25MB-க்கு குறைவாக இருக்க வேண்டும்.",
+    invalidFileType: "PDF, படங்கள் (JPG, PNG) அல்லது வீடியோ (MP4, MOV, WEBM) கோப்புகளை மட்டுமே பதிவேற்ற முடியும்."
   } : {
     nav: ["Home", "About", "Energy & Law", "News", "Gallery", "My Petitions", "Connect"],
     brandSubtitle: "PUBLIC SERVICE · TAMIL NADU", homeLabel: "CTR Nirmal Kumar home", navigationLabel: "Main navigation", languageLabel: "Choose language", login: "Login", getInTouch: "Get in touch",
@@ -240,16 +274,116 @@ export default function PoliticalPage() {
     loginTitle: "Citizen Portal Login", loginText: "Enter your email address to sign in with a secure Gmail SMTP one-time verification code.",
     sendLoginOtp: "Send Login OTP", verifyAndLogin: "Verify & Enter Portal",
     myPetitionsTitle: "My Registered Petitions", noPetitionsYet: "No petitions recorded under this email address yet.",
-    newPetition: "Submit New Petition", signOut: "Sign out", verifiedCitizen: "Verified Citizen"
+    newPetition: "Submit New Petition", signOut: "Sign out", verifiedCitizen: "Verified Citizen",
+    attachDocument: "Attach Document / Photo / Video (Optional)",
+    uploadClickText: "Click or drag & drop to upload supporting document, photo, or video",
+    uploadFormats: "PDF, JPG, PNG, DOCX, MP4, MOV, WEBM (Max 25MB)",
+    attachedBadge: "Attached file:",
+    removeAttachment: "Remove",
+    viewAttachment: "Download Attachment",
+    playVideo: "Play Video",
+    hasAttachmentTag: "Document / Video Attached",
+    fileTooLarge: "File size exceeds 25MB limit. Please choose a smaller file.",
+    invalidFileType: "Only PDF, images (JPG, PNG, WEBP), or videos (MP4, MOV, WEBM) are allowed."
   };
 
   const nav = copy.nav
     .map((label, index) => [label, ["#home", "#about", "#portfolio", "#news", "#gallery", null, "#connect"][index]])
     .filter(([, href]) => href);
-  const socialLinks = copy.socialNames.map((name, index) => ({
-    name,
-    href: ["https://www.facebook.com/CTR.NirmalKumar", "https://x.com/CTR_Nirmalkumar", "https://www.instagram.com/ctr.nirmalkumar"][index]
-  }));
+
+  const mainSocialCards = [
+    {
+      platform: "Facebook",
+      handle: "CTR Nirmal Kumar",
+      url: "https://www.facebook.com/CTR.NirmalKumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#1877F2" />
+          <path d="M28.5 24.5H24.5V36H19.5V24.5H16.5V20.5H19.5V17.8C19.5 14.8 21.3 13 24.2 13H28.5V17H26C24.7 17 24.5 17.6 24.5 18.5V20.5H28.5L28.5 24.5Z" fill="white" />
+        </svg>
+      )
+    },
+    {
+      platform: "Instagram",
+      handle: "ctr.nirmalkumar",
+      url: "https://www.instagram.com/ctr.nirmalkumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <defs>
+            <linearGradient id="igCardGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#FFDC80" />
+              <stop offset="25%" stopColor="#F77737" />
+              <stop offset="50%" stopColor="#F56040" />
+              <stop offset="75%" stopColor="#FD1D1D" />
+              <stop offset="100%" stopColor="#833AB4" />
+            </linearGradient>
+          </defs>
+          <rect width="48" height="48" rx="14" fill="url(#igCardGrad)" />
+          <rect x="11" y="11" width="26" height="26" rx="7" stroke="white" strokeWidth="2.8" />
+          <circle cx="24" cy="24" r="6.5" stroke="white" strokeWidth="2.8" />
+          <circle cx="31" cy="17" r="2.2" fill="white" />
+        </svg>
+      )
+    },
+    {
+      platform: "X (Twitter)",
+      handle: "CTR_Nirmalkumar",
+      url: "https://x.com/CTR_Nirmalkumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <rect width="48" height="48" rx="14" fill="#000000" />
+          <path d="M34.5 12H38.5L29.7 22L40 36H32L25.7 27.7L18.5 36H14.5L23.8 25.3L14 12H22.2L28 19.7L34.5 12ZM33.1 33.6H35.3L21.1 14.2H18.7L33.1 33.6Z" fill="white" />
+        </svg>
+      )
+    }
+  ];
+
+  const officeSocialCards = [
+    {
+      platform: "Facebook",
+      handle: "@Office of Nirmal Kumar",
+      url: "https://www.facebook.com/CTR.NirmalKumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <circle cx="24" cy="24" r="24" fill="#1877F2" />
+          <path d="M28.5 24.5H24.5V36H19.5V24.5H16.5V20.5H19.5V17.8C19.5 14.8 21.3 13 24.2 13H28.5V17H26C24.7 17 24.5 17.6 24.5 18.5V20.5H28.5L28.5 24.5Z" fill="white" />
+        </svg>
+      )
+    },
+    {
+      platform: "Instagram",
+      handle: "@officeofctrnirmalkumar",
+      url: "https://www.instagram.com/ctr.nirmalkumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <defs>
+            <linearGradient id="igCardGradOffice" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#FFDC80" />
+              <stop offset="25%" stopColor="#F77737" />
+              <stop offset="50%" stopColor="#F56040" />
+              <stop offset="75%" stopColor="#FD1D1D" />
+              <stop offset="100%" stopColor="#833AB4" />
+            </linearGradient>
+          </defs>
+          <rect width="48" height="48" rx="14" fill="url(#igCardGradOffice)" />
+          <rect x="11" y="11" width="26" height="26" rx="7" stroke="white" strokeWidth="2.8" />
+          <circle cx="24" cy="24" r="6.5" stroke="white" strokeWidth="2.8" />
+          <circle cx="31" cy="17" r="2.2" fill="white" />
+        </svg>
+      )
+    },
+    {
+      platform: "X (Twitter)",
+      handle: "@OfficeOfCTRNKL",
+      url: "https://x.com/CTR_Nirmalkumar",
+      icon: (
+        <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+          <rect width="48" height="48" rx="14" fill="#000000" />
+          <path d="M34.5 12H38.5L29.7 22L40 36H32L25.7 27.7L18.5 36H14.5L23.8 25.3L14 12H22.2L28 19.7L34.5 12ZM33.1 33.6H35.3L21.1 14.2H18.7L33.1 33.6Z" fill="white" />
+        </svg>
+      )
+    }
+  ];
 
   useEffect(() => {
     document.documentElement.lang = tamil ? "ta" : "en";
@@ -278,6 +412,7 @@ export default function PoliticalPage() {
     }
     setOtp("");
     setPetitionResult(null);
+    setAttachedFile(null);
     setLoading(false);
     setErrorMessage("");
     setSuccessMessage("");
@@ -390,6 +525,11 @@ export default function PoliticalPage() {
     const match = upper.match(/CTR-\d{4}-\d{6}/);
     return match ? match[0] : upper;
   };
+  const isVideoAttachment = (filename, mimeType) => {
+    if (mimeType && mimeType.startsWith("video/")) return true;
+    if (!filename) return false;
+    return /\.(mp4|mov|webm|3gp|avi|mkv|m4v)$/i.test(filename);
+  };
 
   // Helper for resilient JSON API requests with clear bilingual error messages
   const safeApiRequest = async (url, body) => {
@@ -500,6 +640,64 @@ export default function PoliticalPage() {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "image/webp",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "video/mp4",
+      "video/webm",
+      "video/ogg",
+      "video/quicktime",
+      "video/3gpp",
+      "video/x-msvideo",
+      "video/x-matroska"
+    ];
+    const allowedExts = [
+      ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".doc", ".docx",
+      ".mp4", ".mov", ".webm", ".3gp", ".avi", ".mkv", ".m4v"
+    ];
+    const ext = file.name ? file.name.substring(file.name.lastIndexOf(".")).toLowerCase() : "";
+
+    const isAllowed = allowedTypes.includes(file.type) || allowedExts.includes(ext) || (file.type && (file.type.startsWith("video/") || file.type.startsWith("image/")));
+    if (!isAllowed) {
+      setErrorMessage(copy.invalidFileType);
+      return;
+    }
+
+    // Limit to 25MB for videos / images / documents
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMessage(copy.fileTooLarge);
+      return;
+    }
+
+    setErrorMessage("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachedFile({
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        data: reader.result
+      });
+    };
+    reader.onerror = () => {
+      setErrorMessage(tamil ? "கோப்பைப் படிக்க முடியவில்லை." : "Failed to read the selected file.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
+  };
+
   // 3. Send OTP for Petition Submission
   const handleSendSubmitOtp = async (event) => {
     event.preventDefault();
@@ -572,10 +770,16 @@ export default function PoliticalPage() {
         name: petitionerName,
         subject: issue,
         details,
-        constituency
+        constituency,
+        attachment: attachedFile ? {
+          name: attachedFile.name,
+          type: attachedFile.type,
+          data: attachedFile.data
+        } : null
       });
 
       setPetitionRef(submitData.referenceNo);
+      setAttachedFile(null);
       setPortalStage("submitted");
       setSuccessMessage(copy.petitionSaved);
     } catch (err) {
@@ -813,6 +1017,12 @@ export default function PoliticalPage() {
       </div><p className="portfolio-closing">{tamil ? "வலுவான, நிலையான மற்றும் நீதியான தமிழ்நாட்டை உருவாக்குதல்." : "Building a stronger, sustainable and just Tamil Nadu."}</p>
     </section>
 
+    {/* Dedicated MLA Office Showcase Section (Namma Aadhav style) */}
+    <MlaOfficeSection tamil={tamil} />
+
+    {/* Full Thiruparankundram Constituency Ward Boundary & Infrastructure Map */}
+    <ConstituencyMap tamil={tamil} />
+
     <section className="news-section section-pad" id="news"><div className="section-heading news-heading"><div><span className="eyebrow">{copy.newsEyebrow}</span><h2>{copy.newsTitle} <em>{copy.newsBottom}</em></h2></div><span className="section-badge-pill">{tamil ? "செய்திப் பதிவுகள்" : "Official Updates"}</span></div>
       <div className="news-grid">{stories.map((item, index) => {
         return <article className="news-card news-card-featured" key={item.title}>
@@ -847,7 +1057,59 @@ export default function PoliticalPage() {
       })}</div>
     </section>
 
-    <section className="connect-section section-pad" id="connect"><div className="connect-copy"><span className="eyebrow">{copy.connectEyebrow}</span><h2>{copy.connectTop}<br /><em>{copy.connectBottom}</em></h2><p>{copy.connectText}</p></div><div className="social-links">{socialLinks.map(({ name, href }, index) => <a className="social-link" href={href} target="_blank" rel="noreferrer" key={href}><span>0{index + 1}</span>{name}<ArrowUpRight size={15} /></a>)}</div></section>
+    <section className="connect-section section-pad" id="connect">
+      <div className="connect-header">
+        <span className="eyebrow">{copy.connectEyebrow}</span>
+        <h2>{copy.connectTop} <em>{copy.connectBottom}</em></h2>
+        <p>{copy.connectText}</p>
+      </div>
+
+      <div className="social-cards-container">
+        {/* Row 1: Official Profiles */}
+        <div className="social-cards-grid">
+          {mainSocialCards.map((card, idx) => (
+            <div className="social-media-card" key={idx}>
+              <div className="social-card-icon-wrap">
+                {card.icon}
+              </div>
+              <h3 className="social-card-platform">{card.platform}</h3>
+              <p className="social-card-handle">{card.handle}</p>
+              <a
+                href={card.url}
+                target="_blank"
+                rel="noreferrer"
+                className="social-card-btn"
+              >
+                <span>{tamil ? "பின்தொடர" : "Follow"}</span>
+                <ArrowUpRight size={14} />
+              </a>
+            </div>
+          ))}
+        </div>
+
+        {/* Row 2: Constituency Office Profiles */}
+        <div className="social-cards-grid social-cards-office-grid">
+          {officeSocialCards.map((card, idx) => (
+            <div className="social-media-card" key={idx}>
+              <div className="social-card-icon-wrap">
+                {card.icon}
+              </div>
+              <h3 className="social-card-platform">{card.platform}</h3>
+              <p className="social-card-handle">{card.handle}</p>
+              <a
+                href={card.url}
+                target="_blank"
+                rel="noreferrer"
+                className="social-card-btn"
+              >
+                <span>{tamil ? "பின்தொடர" : "Follow"}</span>
+                <ArrowUpRight size={14} />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
     <footer className="site-footer"><a className="footer-brand" href="#home"><img className="brand-symbol footer-symbol" src="/hero-thalaivar.png" alt="" /><span className="footer-identity"><strong>{tamil ? "நிர்மல் குமார்" : "NIRMAL KUMAR"}</strong><small>B.E. · LL.B. · M.A.</small><small>{tamil ? "திருப்பரங்குன்றம் சட்டமன்ற உறுப்பினர்" : "MLA · THIRUPARANKUNDRAM"}</small></span></a><span>{copy.footerRole}</span><a href="#home" aria-label={copy.backToTop} onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{copy.backToTop} <ChevronDown size={14} /></a></footer>
 
     {portalIntent && <div className="portal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closePortal(); }}>
@@ -988,6 +1250,68 @@ export default function PoliticalPage() {
             placeholder={copy.detailsPlaceholder}
           />
 
+          {/* Supporting Document / Photo Upload */}
+          <div className="portal-upload-container">
+            <span className="portal-upload-label">
+              <Paperclip size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+              {copy.attachDocument}
+            </span>
+
+            {!attachedFile ? (
+              <label className="portal-upload-box" htmlFor="portal-file-input">
+                <input
+                  id="portal-file-input"
+                  type="file"
+                  className="portal-file-hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.mp4,.mov,.webm,.3gp,.avi,.mkv,video/*,image/*"
+                />
+                <UploadCloud size={24} className="portal-upload-icon" />
+                <span className="portal-upload-main-text">{copy.uploadClickText}</span>
+                <span className="portal-upload-sub-text">{copy.uploadFormats}</span>
+              </label>
+            ) : (
+              <div className="portal-upload-preview-wrapper">
+                <div className="portal-upload-preview">
+                  <div className="portal-preview-info">
+                    {isVideoAttachment(attachedFile.name, attachedFile.type) ? (
+                      <Video size={18} className="portal-preview-icon portal-icon-video" />
+                    ) : (
+                      <FileText size={18} className="portal-preview-icon" />
+                    )}
+                    <div className="portal-preview-meta">
+                      <span className="portal-preview-filename" title={attachedFile.name}>{attachedFile.name}</span>
+                      <span className="portal-preview-size">
+                        {attachedFile.size > 1024 * 1024
+                          ? `${(attachedFile.size / (1024 * 1024)).toFixed(2)} MB`
+                          : `${(attachedFile.size / 1024).toFixed(1)} KB`}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="portal-upload-remove-btn"
+                    onClick={handleRemoveFile}
+                    title={copy.removeAttachment}
+                  >
+                    <X size={14} />
+                    <span>{copy.removeAttachment}</span>
+                  </button>
+                </div>
+                {isVideoAttachment(attachedFile.name, attachedFile.type) && attachedFile.data && (
+                  <div className="portal-video-container">
+                    <video
+                      controls
+                      src={attachedFile.data}
+                      className="portal-video-player"
+                      preload="metadata"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <button className="portal-submit" type="submit" disabled={loading || !email.trim() || !issue.trim() || !details.trim()}>
             {loading ? <><span className="portal-spinner" /> {copy.sendingOtp}</> : <><Mail size={16} /> {copy.sendOtp} <ArrowRight size={16} /></>}
           </button>
@@ -998,6 +1322,22 @@ export default function PoliticalPage() {
         {portalStage === "otp" && <form className="portal-form" onSubmit={handleVerifyAndSubmit}>
           <h2 id="portal-title">{copy.otpTitle}</h2>
           <p>{copy.otpText}<strong>{email}</strong>.</p>
+
+          {attachedFile && (
+            <div className="portal-attached-tag">
+              {isVideoAttachment(attachedFile.name, attachedFile.type) ? (
+                <Video size={13} style={{ color: "#78221e", flexShrink: 0 }} />
+              ) : (
+                <Paperclip size={13} style={{ flexShrink: 0 }} />
+              )}
+              <span>
+                {copy.attachedBadge} <strong>{attachedFile.name}</strong> (
+                {attachedFile.size > 1024 * 1024
+                  ? `${(attachedFile.size / (1024 * 1024)).toFixed(2)} MB`
+                  : `${(attachedFile.size / 1024).toFixed(1)} KB`})
+              </span>
+            </div>
+          )}
 
           <label htmlFor="portal-otp">{copy.otpLabel} *</label>
           <input
@@ -1198,6 +1538,46 @@ export default function PoliticalPage() {
                   <span style={{ color: "#796e63", fontSize: 11 }}>{new Date(petitionResult.createdAt).toLocaleDateString(tamil ? "ta-IN" : "en-IN", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
 
+                {petitionResult.attachmentName && (
+                  <div className="portal-field-row portal-attachment-field-row">
+                    <label>{copy.attachDocument}</label>
+                    <div className="portal-attached-download-card">
+                      <div className="portal-attached-info">
+                        {isVideoAttachment(petitionResult.attachmentName, petitionResult.attachmentType) ? (
+                          <Video size={16} className="portal-attached-icon portal-icon-video" />
+                        ) : (
+                          <FileText size={15} className="portal-attached-icon" />
+                        )}
+                        <span className="portal-attached-filename" title={petitionResult.attachmentName}>
+                          {petitionResult.attachmentName}
+                        </span>
+                      </div>
+                      {petitionResult.attachmentData && (
+                        <a
+                          href={petitionResult.attachmentData}
+                          download={petitionResult.attachmentName}
+                          className="portal-download-btn"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Download size={13} />
+                          <span>{copy.viewAttachment}</span>
+                        </a>
+                      )}
+                    </div>
+                    {isVideoAttachment(petitionResult.attachmentName, petitionResult.attachmentType) && petitionResult.attachmentData && (
+                      <div className="portal-video-container" style={{ marginTop: 8 }}>
+                        <video
+                          controls
+                          src={petitionResult.attachmentData}
+                          className="portal-video-player"
+                          preload="metadata"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {petitionResult.history && petitionResult.history.length > 0 && (
                   <div className="portal-history-section">
                     <span className="portal-history-title">{copy.petitionTimeline}</span>
@@ -1256,7 +1636,14 @@ export default function PoliticalPage() {
                     }}
                   >
                     <div>
-                      <div className="portal-mini-ref">{p.referenceNo}</div>
+                      <div className="portal-mini-ref">
+                        {p.referenceNo}
+                        {p.hasAttachment && (
+                          <span className="portal-mini-attachment-badge" title={copy.hasAttachmentTag}>
+                            <Paperclip size={10} style={{ marginLeft: 5, verticalAlign: "-1px", color: "#8b1e22" }} />
+                          </span>
+                        )}
+                      </div>
                       <div className="portal-mini-subject">{p.subject}</div>
                     </div>
                     <span className={`portal-status-badge status-${p.status ? p.status.toLowerCase().replace(/\s+/g, '') : 'received'}`} style={{ fontSize: 9, padding: "2px 7px" }}>

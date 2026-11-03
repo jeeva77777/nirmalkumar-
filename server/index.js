@@ -11,6 +11,7 @@ import {
   verifySmtpConnection,
   sendEmailOtp,
   sendPetitionConfirmationEmail,
+  sendAdminPetitionNotificationEmail,
   hashOtp,
   generateOtp,
   generateVerificationToken,
@@ -31,7 +32,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '40mb' }));
+app.use(express.urlencoded({ extended: true, limit: '40mb' }));
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({ success: false, message: 'Invalid JSON request payload.' });
@@ -386,7 +388,7 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
  */
 app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
   try {
-    const { verificationToken, email, phone, name, constituency, subject, details, category } = req.body;
+    const { verificationToken, email, phone, name, constituency, subject, details, category, attachment } = req.body;
 
     if (!verificationToken || typeof verificationToken !== 'string') {
       return res.status(401).json({
@@ -488,11 +490,31 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
     const cleanDetails = details.trim();
     const cleanCategory = category ? category.trim() : 'Public Welfare';
 
+    // Parse optional uploaded document/attachment
+    let cleanAttachmentName = null;
+    let cleanAttachmentType = null;
+    let cleanAttachmentData = null;
+
+    if (attachment && typeof attachment === 'object') {
+      if (attachment.name && typeof attachment.name === 'string') {
+        cleanAttachmentName = attachment.name.trim().slice(0, 255);
+      }
+      if (attachment.type && typeof attachment.type === 'string') {
+        cleanAttachmentType = attachment.type.trim().slice(0, 100);
+      }
+      if (attachment.data && typeof attachment.data === 'string') {
+        // Support base64 data URLs up to 40MB (supports videos, photos, docs)
+        if (attachment.data.startsWith('data:') && attachment.data.length <= 40 * 1024 * 1024) {
+          cleanAttachmentData = attachment.data;
+        }
+      }
+    }
+
     // Insert petition
     const [petitionResult] = await pool.query(
-      `INSERT INTO petitions (reference_no, petitioner_id, email, phone, subject, description, category, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'Received')`,
-      [referenceNo, petitionerId, cleanEmail || null, cleanPhone || null, cleanSubject, cleanDetails, cleanCategory]
+      `INSERT INTO petitions (reference_no, petitioner_id, email, phone, subject, description, category, status, attachment_name, attachment_type, attachment_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'Received', ?, ?, ?)`,
+      [referenceNo, petitionerId, cleanEmail || null, cleanPhone || null, cleanSubject, cleanDetails, cleanCategory, cleanAttachmentName, cleanAttachmentType, cleanAttachmentData]
     );
 
     const petitionId = petitionResult.insertId;
@@ -504,16 +526,25 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
       [petitionId]
     );
 
-    // Asynchronously send petition confirmation email if email is provided
-    if (cleanEmail) {
-      sendPetitionConfirmationEmail({
-        to: cleanEmail,
-        name: cleanName,
-        referenceNo,
-        subject: cleanSubject,
-        category: cleanCategory
-      }).catch((e) => console.warn('[Confirmation Email Error]:', e.message));
-    }
+    // Automatically send full petition notification ONLY to ironkyle007@gmail.com immediately after database storage
+    // Does NOT send notification to petition submitter, per requirement
+    sendAdminPetitionNotificationEmail({
+      referenceNo,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      constituency: cleanConstituency,
+      subject: cleanSubject,
+      category: cleanCategory,
+      details: cleanDetails,
+      attachmentName: cleanAttachmentName,
+      attachmentType: cleanAttachmentType,
+      attachmentData: cleanAttachmentData,
+      createdAt: new Date()
+    }).catch((emailErr) => {
+      // If email delivery fails, keep the petition safely stored in database and log the error
+      console.error(`[Admin Notification Delivery Error for ${referenceNo}]:`, emailErr.message);
+    });
 
     return res.status(201).json({
       success: true,
@@ -526,6 +557,8 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
         phone: cleanPhone ? `+91 ******${cleanPhone.slice(-4)}` : null,
         subject: cleanSubject,
         status: 'Received',
+        hasAttachment: !!cleanAttachmentName,
+        attachmentName: cleanAttachmentName,
         createdAt: new Date().toISOString()
       }
     });
@@ -595,6 +628,7 @@ app.post('/api/petitions/track', petitionActionLimiter, async (req, res) => {
     let matchQuery = `
       SELECT p.id, p.reference_no, p.subject, p.description, p.category, p.status,
              p.admin_notes, p.created_at, p.updated_at, p.email, p.phone,
+             p.attachment_name, p.attachment_type, p.attachment_data,
              c.name AS petitioner_name, c.constituency
       FROM petitions p
       JOIN petitioners c ON p.petitioner_id = c.id
@@ -645,6 +679,9 @@ app.post('/api/petitions/track', petitionActionLimiter, async (req, res) => {
         constituency: petition.constituency,
         maskedEmail: petition.email ? maskEmail(petition.email) : null,
         maskedPhone: petition.phone ? `+91 ******${petition.phone.slice(-4)}` : null,
+        attachmentName: petition.attachment_name || null,
+        attachmentType: petition.attachment_type || null,
+        attachmentData: petition.attachment_data || null,
         history: history.map((item) => ({
           status: item.status,
           comments: item.comments,
@@ -689,7 +726,7 @@ app.post('/api/citizen/my-petitions', petitionActionLimiter, async (req, res) =>
     }
 
     const [petitions] = await pool.query(
-      `SELECT p.reference_no, p.subject, p.category, p.status, p.created_at
+      `SELECT p.reference_no, p.subject, p.category, p.status, p.created_at, p.attachment_name
        FROM petitions p
        LEFT JOIN petitioners c ON p.petitioner_id = c.id
        WHERE LOWER(COALESCE(p.email, '')) = LOWER(?)
@@ -706,6 +743,8 @@ app.post('/api/citizen/my-petitions', petitionActionLimiter, async (req, res) =>
         subject: p.subject,
         category: p.category,
         status: p.status,
+        hasAttachment: !!p.attachment_name,
+        attachmentName: p.attachment_name || null,
         createdAt: p.created_at
       }))
     });

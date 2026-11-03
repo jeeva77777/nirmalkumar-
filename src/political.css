@@ -1265,6 +1265,521 @@ img {
 }
 
 /* ============================================================
+   5. CONSTITUENCY INFRASTRUCTURE & WARD BOUNDARY MAP (MADURAI AC 195)
+   ============================================================ */
+.constituency-map-section {
+  position: relative;
+  background: linear-gradient(180deg, #faf7f2 0%, #f4ede1 50%, #faf6ef 100%);
+  border-top: 1px solid var(--line-gold);
+  border-bottom: 1px solid var(--line);
+}
+
+.map-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.map-category-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-xs);
+  white-space: nowrap;
+}
+
+.category-pill:hover {
+  border-color: var(--gold-500);
+  color: var(--maroon-primary);
+  transform: translateY(-1px);
+}
+
+.category-pill.is-active {
+  background: var(--maroon-primary);
+  color: #ffffff;
+  border-color: var(--maroon-primary);
+  box-shadow: 0 4px 12px rgba(99, 22, 24, 0.25);
+}
+
+.map-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.map-type-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+}
+
+.map-type-toggle button {
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.map-type-toggle button:hover {
+  color: var(--maroon-primary);
+}
+
+.map-type-toggle button.active {
+  background: var(--gold-100);
+  color: var(--maroon-dark);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(226, 175, 39, 0.4);
+}
+
+.map-button-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  border-color: var(--gold-500);
+  color: var(--maroon-primary);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn.active {
+  background: var(--maroon-primary);
+  color: #ffffff;
+  border-color: var(--maroon-primary);
+}
+
+.toolbar-btn-gold {
+  background: var(--gold-foil);
+  color: var(--maroon-deep);
+  border-color: rgba(226, 175, 39, 0.5);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(226, 175, 39, 0.28);
+}
+
+.toolbar-btn-gold:hover {
+  background: var(--gold-shimmer);
+  color: var(--maroon-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(226, 175, 39, 0.4);
+}
+
+.map-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.map-canvas-wrapper {
+  position: relative;
+  min-height: 560px;
+  height: 560px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid rgba(212, 160, 52, 0.35);
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(226, 175, 39, 0.08);
+  background: #eef1f4;
+}
+
+.map-canvas {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.map-floating-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px;
+  background: rgba(36, 8, 10, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(238, 200, 75, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.map-floating-badge .badge-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.map-floating-badge strong {
+  font-size: 11px;
+  color: var(--gold-300);
+  letter-spacing: 0.04em;
+}
+
+.map-floating-badge small {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Custom Marker Pins matching reference */
+.pin-wrapper {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  z-index: 1000 !important;
+}
+
+.custom-map-pin {
+  position: relative;
+  width: 34px;
+  height: 42px;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+.custom-map-pin:hover,
+.custom-map-pin.is-active {
+  transform: scale(1.18) translateY(-4px);
+  z-index: 1000 !important;
+}
+
+.pin-shape {
+  display: block;
+}
+
+.pin-icon-wrap {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pin-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--pin-color);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.custom-map-pin.is-active .pin-halo {
+  opacity: 0.35;
+  transform: scale(1.25);
+  animation: halo-pulse 2s infinite alternate;
+}
+
+/* Tooltip on boundary hover */
+.constituency-map-tooltip {
+  background: rgba(36, 8, 10, 0.95) !important;
+  border: 1px solid var(--gold-400) !important;
+  color: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  box-shadow: var(--shadow-md) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.constituency-map-tooltip::before {
+  border-top-color: rgba(36, 8, 10, 0.95) !important;
+}
+
+/* Marker Detail Card (Side Panel) */
+.marker-detail-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--line-gold);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-header {
+  border-left: 4px solid var(--gold-500);
+  padding-left: 14px;
+  margin-bottom: 16px;
+}
+
+.detail-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.detail-tag-icon svg {
+  display: block;
+}
+
+.detail-header h3 {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--maroon-deep);
+  margin: 0 0 6px;
+}
+
+.detail-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.detail-body {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-secondary);
+  margin: 0 0 20px;
+}
+
+.detail-actions {
+  margin-bottom: 22px;
+}
+
+.detail-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-nav-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  color: #ffffff !important;
+}
+
+.nearby-list-wrap {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.nearby-title {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+
+.nearby-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nearby-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #fbf9f5;
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nearby-chip:hover {
+  background: #f4ede1;
+  border-color: var(--line-gold);
+}
+
+.nearby-chip.active {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
+  font-weight: 600;
+  color: var(--maroon-primary);
+}
+
+.chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-nav-icon {
+  margin-left: auto;
+  opacity: 0.45;
+  flex-shrink: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  color: var(--ink-muted);
+}
+
+.nearby-chip:hover .chip-nav-icon {
+  opacity: 1;
+  transform: translate(2px, -2px);
+  color: var(--maroon-primary);
+}
+
+.nearby-chip.active .chip-nav-icon {
+  opacity: 1;
+  color: var(--maroon-primary);
+}
+
+/* Ward Highlights Stats Strip */
+.ward-stats-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 28px;
+  padding: 22px 28px;
+  background: #ffffff;
+  border: 1px solid var(--line-gold);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ward-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ward-stat-item small {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.ward-stat-item strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--maroon-primary);
+  line-height: 1.3;
+}
+
+.ward-stat-item span {
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.ward-stat-separator {
+  width: 1px;
+  height: 44px;
+  background: var(--line);
+}
+
+/* ============================================================
    6. OFFICIAL UPDATES / NEWS SECTION
    ============================================================ */
 .news-section {
@@ -1576,79 +2091,200 @@ img {
 }
 
 /* ============================================================
-   8. CONNECT SECTION & SOCIAL LINKS
+   8. CONNECT SECTION & SOCIAL MEDIA CARDS (NAMMA AADHAV STYLE)
    ============================================================ */
 .connect-section {
-  padding-top: 100px;
-  padding-bottom: 110px;
-  display: grid;
-  grid-template-columns: 1fr 0.85fr;
-  gap: 9%;
-  align-items: center;
-  background: linear-gradient(135deg, #f7f2e8 0%, #faf6ef 50%, #f4eee2 100%);
-  border-top: 1px solid var(--line);
-}
-
-.connect-copy h2 {
-  margin-bottom: 18px;
-}
-
-.connect-copy p {
-  max-width: 440px;
-  color: var(--ink-muted);
-  font-size: 14px;
-  line-height: 1.85;
-}
-
-.social-links {
-  border-top: 1px solid rgba(212, 160, 52, 0.3);
-}
-
-.social-links a {
-  position: relative;
+  padding-top: 85px;
+  padding-bottom: 95px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 14px;
-  border-bottom: 1px solid rgba(212, 160, 52, 0.25);
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--maroon-deep);
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(135deg, #fbf7ee 0%, #fdfbf7 50%, #f7f2e8 100%);
+  border-top: 1px solid var(--line);
+  width: 100%;
 }
 
-.social-links a::before {
+.connect-header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 46px;
+  padding: 0 16px;
+}
+
+.connect-header h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 600;
+  color: var(--maroon-primary);
+  line-height: 1.18;
+  margin: 12px 0 14px;
+}
+
+.connect-header p {
+  color: var(--ink-muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.social-cards-container {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.social-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.social-cards-office-grid {
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+}
+
+.social-media-card {
+  background: #ffffff;
+  border: 1px solid rgba(220, 209, 190, 0.6);
+  border-radius: 20px;
+  padding: 28px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(37, 25, 20, 0.05);
+  transition: all 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.social-media-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(90deg, rgba(238, 200, 75, 0.25), rgba(238, 200, 75, 0.05));
-  transform: translateX(-101%);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #78221e, #d4a034);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.social-links a>* {
-  position: relative;
-  z-index: 1;
+.social-media-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(201, 153, 83, 0.55);
+  box-shadow: 0 18px 40px rgba(120, 34, 30, 0.12);
 }
 
-.social-links a span {
+.social-media-card:hover::before {
+  opacity: 1;
+}
+
+.social-card-icon-wrap {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+}
+
+.social-media-card:hover .social-card-icon-wrap {
+  transform: scale(1.1) translateY(-2px);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.2));
+}
+
+.social-card-platform {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--gold-600);
-  letter-spacing: 0.14em;
+  color: #1a1a1a;
+  margin: 0 0 5px;
+  letter-spacing: -0.01em;
 }
 
-.social-links a:hover {
-  padding-left: 24px;
-  color: var(--maroon-vibrant);
+.social-card-handle {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: #78221e;
+  margin: 0 0 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.social-links a:hover::before {
-  transform: translateX(0);
+.social-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 22px;
+  background: linear-gradient(135deg, #78221e 0%, #581617 100%);
+  color: #ffffff !important;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(120, 34, 30, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: auto;
+}
+
+.social-card-btn svg {
+  transition: transform 0.25s ease;
+}
+
+.social-card-btn:hover {
+  background: linear-gradient(135deg, #8c2823 0%, #68191b 100%);
+  box-shadow: 0 6px 20px rgba(120, 34, 30, 0.5);
+  transform: translateY(-1px);
+}
+
+.social-card-btn:hover svg {
+  transform: translate(2px, -2px);
+}
+
+@media (max-width: 900px) {
+  .social-cards-container {
+    padding: 0 16px;
+    gap: 16px;
+  }
+  .social-cards-grid,
+  .social-cards-office-grid {
+    gap: 14px;
+  }
+  .social-media-card {
+    padding: 22px 14px 18px;
+  }
+}
+
+@media (max-width: 680px) {
+  .social-cards-container {
+    align-items: center;
+  }
+  .social-cards-grid,
+  .social-cards-office-grid {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+    margin: 0 auto;
+    gap: 14px;
+  }
 }
 
 /* ============================================================
@@ -2973,6 +3609,61 @@ main[lang="ta"] .portal-secondary {
     font-size: 28px;
   }
 
+  /* Constituency Ward Map Responsive (<= 768px) */
+  .map-workspace-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .map-canvas-wrapper {
+    height: 420px;
+    min-height: 420px;
+  }
+
+  .ward-stats-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 18px 20px;
+  }
+
+  .ward-stat-separator {
+    display: none;
+  }
+
+  .map-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .map-type-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .map-type-toggle button {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .map-button-group {
+    width: 100%;
+    display: flex;
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .map-button-group .toolbar-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+
   /* ============================================================
      TAMIL LANGUAGE MOBILE RESPONSIVE OPTIMIZATIONS (<= 768px)
      Scoped strictly to main[lang="ta"] to preserve desktop and English
@@ -3329,13 +4020,15 @@ main[lang="ta"] .portal-secondary {
   }
 
   main[lang="ta"] .social-links a {
-    font-size: 16px;
     padding: 14px 10px;
-    line-height: 1.4;
   }
 
-  main[lang="ta"] .social-links a span {
+  main[lang="ta"] .social-link-num {
     font-size: 10px;
+  }
+
+  main[lang="ta"] .social-link-name {
+    font-size: 17px;
   }
 
   main[lang="ta"] .site-footer {
@@ -3507,6 +4200,23 @@ main[lang="ta"] .portal-secondary {
 
   .education-items span {
     font-size: 12px;
+  }
+
+  .map-canvas-wrapper {
+    height: 360px;
+    min-height: 360px;
+  }
+
+  .marker-detail-card {
+    padding: 16px;
+  }
+
+  .detail-header h3 {
+    font-size: 16px;
+  }
+
+  .ward-stats-strip {
+    padding: 14px 16px;
   }
 
   /* ============================================================
@@ -4020,4 +4730,618 @@ main[lang="ta"] .portal-secondary {
     filter: none !important;
     transform: none !important;
   }
+}
+
+
+/* ============================================================
+   MLA OFFICE & CONSTITUENCY CITIZEN HUB (SOVEREIGN THEME)
+   High-Prestige Imperial Maroon & Royal Gold ministerial design
+   ============================================================ */
+.mla-office-banner-section {
+  position: relative;
+  width: 100%;
+  background: var(--cream);
+  padding: 44px 24px 56px;
+  border-top: 1px solid var(--line-gold);
+}
+
+/* Main Imperial Maroon & Gold Showcase Card */
+.mla-office-card {
+  max-width: 1240px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #440e11 0%, #631618 50%, #2c090b 100%);
+  border: 1.5px solid rgba(226, 175, 39, 0.42);
+  border-radius: 28px;
+  padding: 48px 52px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 40px;
+  align-items: center;
+  box-shadow: 0 20px 55px rgba(44, 9, 11, 0.42), 0 0 35px rgba(226, 175, 39, 0.14);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Luxury Watermark Rings */
+.mla-card-watermark {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border: 1px solid rgba(238, 200, 75, 0.12);
+  border-radius: 50%;
+  left: -80px;
+  bottom: -120px;
+  box-shadow: 0 0 0 40px rgba(238, 200, 75, 0.03), 0 0 0 90px rgba(238, 200, 75, 0.02);
+  pointer-events: none;
+}
+
+/* Left Column: Office Details */
+.mla-office-details {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mla-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-400);
+  margin-bottom: 12px;
+}
+
+.mla-office-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.8rem, 4.8vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  color: #ffffff;
+  background: var(--gold-shimmer);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.015em;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.mla-office-sub {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0 0 28px 0;
+}
+
+.mla-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mla-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mla-info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-400);
+  flex-shrink: 0;
+  margin-top: 2px;
+  filter: drop-shadow(0 2px 6px rgba(226, 175, 39, 0.4));
+}
+
+.mla-info-text {
+  margin: 0;
+  color: #faf7f2;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.55;
+  max-width: 480px;
+}
+
+.mla-info-link {
+  color: var(--gold-300);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(238, 200, 75, 0.4);
+  text-underline-offset: 3px;
+  transition: all 0.2s ease;
+  word-break: break-all;
+}
+
+.mla-info-link:hover {
+  color: #ffffff;
+  text-decoration-color: #ffffff;
+}
+
+.mla-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mla-badge-247 {
+  background: var(--gold-foil);
+  color: var(--maroon-deep);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(226, 175, 39, 0.35);
+}
+
+.mla-phone-link {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.mla-share-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--gold-300);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(238, 200, 75, 0.4);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.mla-share-btn:hover {
+  color: #ffffff;
+}
+
+.mla-copied-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #4ade80;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Right Column: Map Container */
+.mla-map-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 380px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.5), 0 0 25px rgba(226, 175, 39, 0.12);
+  border: 2px solid rgba(238, 200, 75, 0.45);
+  background: #e5e7eb;
+}
+
+.mla-leaflet-map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Custom Target Pin Marker matching our website theme */
+.mla-pin-container {
+  background: transparent !important;
+  border: none !important;
+}
+
+.mla-target-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mla-target-pin:hover {
+  transform: scale(1.15);
+}
+
+.target-pin-svg {
+  display: block;
+}
+
+/* Floating Royal Gold Directions Button */
+.mla-directions-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold-foil);
+  color: var(--maroon-deep) !important;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 11px 22px;
+  border-radius: 8px;
+  text-decoration: none !important;
+  box-shadow: 0 8px 24px rgba(226, 175, 39, 0.45);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+.mla-directions-btn:hover {
+  background: var(--gold-shimmer);
+  color: var(--maroon-deep) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(226, 175, 39, 0.65);
+}
+
+.mla-directions-btn:active {
+  transform: translateY(0);
+}
+
+.directions-icon {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.mla-directions-btn:hover .directions-icon {
+  transform: scale(1.12);
+}
+
+/* Tooltip on marker hover */
+.constituency-map-tooltip {
+  background: rgba(36, 8, 10, 0.95) !important;
+  border: 1px solid var(--gold-400) !important;
+  color: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  box-shadow: var(--shadow-md) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.constituency-map-tooltip::before {
+  border-top-color: rgba(36, 8, 10, 0.95) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .mla-office-card {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 36px 30px;
+    border-radius: 22px;
+  }
+
+  .mla-map-wrapper {
+    height: 320px;
+  }
+
+  .mla-office-title {
+    font-size: 2.8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .mla-office-banner-section {
+    padding: 24px 16px 40px;
+  }
+
+  .mla-office-card {
+    padding: 28px 20px;
+    border-radius: 18px;
+    gap: 26px;
+  }
+
+  .mla-office-title {
+    font-size: 2.3rem;
+  }
+
+  .mla-info-list {
+    gap: 16px;
+  }
+
+  .mla-info-text,
+  .mla-info-link,
+  .mla-share-btn {
+    font-size: 14px;
+  }
+
+  .mla-map-wrapper {
+    height: 280px;
+    border-radius: 16px;
+  }
+
+  .mla-directions-btn {
+    bottom: 14px;
+    right: 14px;
+    padding: 9px 16px;
+    font-size: 13.5px;
+  }
+}
+
+
+/* ==========================================================================
+   Citizen Portal - Document & Photo Upload Styles
+   ========================================================================== */
+.portal-upload-container {
+  margin-top: 14px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.portal-upload-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #796e63;
+  margin-bottom: 7px;
+}
+
+.portal-file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.portal-upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 16px;
+  background: #fbf9f5;
+  border: 1.5px dashed #d5c8b5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  gap: 4px;
+}
+
+.portal-upload-box:hover {
+  background: #f8f3ea;
+  border-color: #9a2b28;
+  box-shadow: 0 4px 14px rgba(120, 34, 30, 0.06);
+}
+
+.portal-upload-box:focus-within {
+  border-color: #78221e;
+  outline: 2px solid rgba(120, 34, 30, 0.2);
+}
+
+.portal-upload-icon {
+  color: #8b3027;
+  margin-bottom: 2px;
+  transition: transform 0.2s ease;
+}
+
+.portal-upload-box:hover .portal-upload-icon {
+  transform: translateY(-2px);
+  color: #631618;
+}
+
+.portal-upload-main-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2b2621;
+}
+
+.portal-upload-sub-text {
+  font-size: 10.5px;
+  color: #796e63;
+  letter-spacing: 0.02em;
+}
+
+.portal-upload-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fdfcf9;
+  border: 1px solid #dcd5c9;
+  border-left: 3px solid #78221e;
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.portal-preview-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.portal-preview-icon {
+  color: #78221e;
+  flex-shrink: 0;
+}
+
+.portal-preview-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.portal-preview-filename {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b2621;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portal-preview-size {
+  font-size: 10px;
+  color: #796e63;
+}
+
+.portal-upload-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid #e2dad0;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b2b2b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.portal-upload-remove-btn:hover {
+  background: #fee;
+  border-color: #f5b5b5;
+  color: #b00;
+}
+
+/* OTP view attached pill */
+.portal-attached-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fbf6ec;
+  border: 1px solid #eedec4;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  color: #6a4c16;
+  text-align: left;
+  width: 100%;
+}
+
+.portal-attached-tag strong {
+  color: #2b2621;
+}
+
+/* Track petition attachment display */
+.portal-attachment-field-row {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed #e8e3dc;
+}
+
+.portal-attached-download-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #fcfaf6;
+  border: 1px solid #e5ded5;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+.portal-attached-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.portal-attached-icon {
+  color: #78221e;
+  flex-shrink: 0;
+}
+
+.portal-attached-filename {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2b2621;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portal-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  background: linear-gradient(135deg, #78221e 0%, #581617 100%);
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(120, 34, 30, 0.2);
+}
+
+.portal-download-btn:hover {
+  background: linear-gradient(135deg, #8c2823 0%, #68191b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(120, 34, 30, 0.3);
+}
+
+.portal-mini-attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+
+/* Video Preview & Player in Citizen Portal */
+.portal-upload-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portal-icon-video {
+  color: #a82823;
+}
+
+.portal-video-container {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1614;
+  border: 1px solid #3c342e;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.portal-video-player {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  background: #000;
+  outline: none;
 }

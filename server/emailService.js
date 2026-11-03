@@ -467,3 +467,312 @@ export async function sendPetitionConfirmationEmail({ to, name, referenceNo, sub
     console.warn(`[Confirmation Email Warning] Could not send receipt to ${cleanTo}:`, err.message);
   }
 }
+
+
+/**
+ * Send an automatic, comprehensive petition notification email to the administrator (ironkyle007@gmail.com).
+ * Subject: "New Petition Received - [Petition ID]"
+ * Triggered immediately after successful database storage.
+ */
+export async function sendAdminPetitionNotificationEmail({
+  referenceNo,
+  name,
+  email,
+  phone,
+  constituency,
+  subject,
+  category,
+  details,
+  attachmentName,
+  attachmentType,
+  attachmentData,
+  createdAt = new Date()
+}) {
+  const status = getSmtpStatus();
+  if (!status.isConfigured) {
+    console.warn(`[Admin Notification Warning] Gmail SMTP is not configured. Petition ${referenceNo} stored in DB but notification email could not be dispatched.`);
+    return null;
+  }
+
+  const adminEmail = (process.env.ADMIN_PETITION_NOTIFICATION_EMAIL || 'ironkyle007@gmail.com').trim().toLowerCase();
+  const senderUser = (process.env.SMTP_USER || 'ironkyle007@gmail.com').trim();
+  const senderFrom = process.env.SMTP_FROM || `"Office of CTR Nirmal Kumar" <${senderUser}>`;
+
+  // Required exact subject format: "New Petition Received - [Petition ID]"
+  const emailSubject = `New Petition Received - ${referenceNo}`;
+
+  // Formatted date and time in Indian Standard Time (IST)
+  const formattedDate = new Date(createdAt).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  }) + ' IST';
+
+  const cleanPhone = phone ? phone.toString().replace(/\D/g, '') : '';
+  const displayPhone = cleanPhone ? `+91 ${cleanPhone}` : 'Not provided';
+  const cleanEmail = email ? email.trim() : 'Not provided';
+  const cleanName = name ? name.trim() : 'Not provided';
+  const cleanConstituency = constituency ? constituency.trim() : 'Thiruparankundram';
+  const cleanCategory = category ? category.trim() : 'Public Welfare';
+  const cleanSubject = subject ? subject.trim() : 'No Subject';
+  const cleanDetails = details ? details.trim() : 'No details provided.';
+
+  // Prepare file attachment if provided
+  const mailAttachments = [];
+  if (attachmentData && typeof attachmentData === 'string' && attachmentData.includes('base64,')) {
+    try {
+      const parts = attachmentData.split('base64,');
+      const base64Content = parts[1];
+      if (base64Content) {
+        mailAttachments.push({
+          filename: attachmentName || 'attached_document',
+          content: Buffer.from(base64Content, 'base64'),
+          contentType: attachmentType || undefined
+        });
+      }
+    } catch (attErr) {
+      console.warn(`[Admin Notification] Could not process attachment for ${referenceNo}:`, attErr.message);
+    }
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${emailSubject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4efe6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#251914;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4efe6;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:620px;background-color:#ffffff;border:1px solid #dcd1be;border-radius:8px;overflow:hidden;box-shadow:0 6px 24px rgba(37,25,20,0.08);">
+          
+          <!-- Ministerial Header Banner -->
+          <tr>
+            <td style="background:linear-gradient(135deg, #78221e 0%, #581617 100%);padding:28px 32px;text-align:center;border-bottom:3px solid #e9b52f;">
+              <div style="color:#f1c75b;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">
+                GOVERNMENT OF TAMIL NADU
+              </div>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.5px;">
+                CTR. NIRMAL KUMAR
+              </h1>
+              <div style="color:#f6e6cf;font-size:12.5px;margin-top:4px;">
+                Minister for Energy Resources &amp; Law &middot; MLA Thiruparankundram
+              </div>
+            </td>
+          </tr>
+
+          <!-- Notification Alert Pill -->
+          <tr>
+            <td style="background-color:#fff8ed;border-bottom:1px solid #fae1c3;padding:12px 32px;text-align:center;">
+              <span style="display:inline-block;color:#b45309;font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
+                &#128227; NEW CITIZEN PETITION RECEIVED &middot; ACTION REQUIRED
+              </span>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding:32px 32px 24px 32px;">
+              
+              <!-- Reference ID Callout Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="background-color:#fffdfa;border:2px dashed #cca43b;border-radius:6px;padding:18px 22px;text-align:center;">
+                    <div style="color:#796e63;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">
+                      PETITION ID / REFERENCE NUMBER
+                    </div>
+                    <div style="color:#78221e;font-size:30px;font-weight:800;letter-spacing:1px;font-family:Courier,'Courier New',monospace;">
+                      ${referenceNo}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="margin:0 0 16px 0;color:#78221e;font-size:17px;font-weight:700;border-bottom:2px solid #f2ede4;padding-bottom:8px;">
+                Petitioner &amp; Submission Details
+              </h2>
+
+              <!-- Details Table -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13.5px;color:#2b2621;margin-bottom:24px;">
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;width:160px;vertical-align:top;">Petitioner Name:</td>
+                  <td style="padding:9px 6px;font-weight:600;color:#1e1a17;">${cleanName}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Email Address:</td>
+                  <td style="padding:9px 6px;">
+                    ${cleanEmail !== 'Not provided' ? `<a href="mailto:${cleanEmail}" style="color:#1a73e8;text-decoration:none;font-weight:600;">${cleanEmail}</a>` : '<span style="color:#9e9282;">Not provided</span>'}
+                  </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Mobile Number:</td>
+                  <td style="padding:9px 6px;">
+                    ${cleanPhone ? `<a href="tel:+91${cleanPhone}" style="color:#1a73e8;text-decoration:none;font-weight:600;">${displayPhone}</a>` : '<span style="color:#9e9282;">Not provided</span>'}
+                  </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Constituency:</td>
+                  <td style="padding:9px 6px;color:#1e1a17;">${cleanConstituency}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Petition Category:</td>
+                  <td style="padding:9px 6px;"><span style="display:inline-block;background-color:#f0f4f9;color:#1e40af;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;">${cleanCategory}</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Submitted Date &amp; Time:</td>
+                  <td style="padding:9px 6px;color:#1e1a17;font-weight:500;">${formattedDate}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f2ede4;">
+                  <td style="padding:9px 6px;color:#796e63;font-weight:700;vertical-align:top;">Petition Subject:</td>
+                  <td style="padding:9px 6px;color:#78221e;font-weight:700;font-size:14px;">${cleanSubject}</td>
+                </tr>
+              </table>
+
+              <!-- Full Petition Description Box -->
+              <h2 style="margin:24px 0 10px 0;color:#78221e;font-size:16px;font-weight:700;">
+                Full Petition Description
+              </h2>
+              <div style="background-color:#fcfaf6;border:1px solid #e7dfd3;border-left:4px solid #78221e;padding:16px 20px;border-radius:6px;font-size:13.5px;line-height:1.75;color:#2c2520;white-space:pre-wrap;word-break:break-word;">
+${cleanDetails}
+              </div>
+
+              <!-- Attachment Section -->
+              <h2 style="margin:26px 0 10px 0;color:#78221e;font-size:16px;font-weight:700;">
+                Attached Documents / Media
+              </h2>
+              ${attachmentName ? `
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:14px 18px;">
+                <tr>
+                  <td style="font-size:13px;color:#334155;">
+                    <div style="font-weight:700;color:#0f172a;font-size:13.5px;">
+                      &#128206; ${attachmentName}
+                    </div>
+                    <div style="font-size:11.5px;color:#64748b;margin-top:4px;">
+                      Type: ${attachmentType || 'Document/Media'} &middot; Attached directly to this email
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              ` : `
+              <div style="background-color:#fbf9f5;border:1px dashed #d5c8b5;padding:12px 16px;border-radius:6px;color:#796e63;font-size:12.5px;font-style:italic;">
+                No supporting documents were attached with this petition.
+              </div>
+              `}
+
+              <!-- Database & Portal Assurance -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f0fdf4;border-left:3px solid #16a34a;padding:12px 16px;margin:26px 0 0 0;border-radius:4px;">
+                <tr>
+                  <td style="color:#15803d;font-size:12px;line-height:1.6;">
+                    <strong>Database Storage Confirmed:</strong>
+                    This petition has been safely written to the MySQL production database (ID: ${referenceNo}) and is ready for constituency office review and action.
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f7f4ed;padding:22px 32px;border-top:1px solid #e6ded0;text-align:center;">
+              <div style="color:#796e63;font-size:11.5px;line-height:1.6;">
+                <strong>Constituency Office of CTR Nirmal Kumar</strong><br>
+                Minister for Energy Resources &amp; Law &middot; Government of Tamil Nadu<br>
+                Thiruparankundram Constituency Office &middot; Madurai, Tamil Nadu<br>
+                Automated System Notification delivered via Gmail SMTP to <a href="mailto:${adminEmail}" style="color:#78221e;text-decoration:none;font-weight:600;">${adminEmail}</a>
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const textContent = `
+==================================================
+${emailSubject.toUpperCase()}
+OFFICE OF CTR NIRMAL KUMAR
+Minister for Energy Resources & Law, Government of Tamil Nadu
+MLA, Thiruparankundram Constituency
+==================================================
+
+PETITION DETAILS:
+--------------------------------------------------
+Petition ID:       ${referenceNo}
+Petitioner Name:   ${cleanName}
+Email Address:     ${cleanEmail}
+Mobile Number:     ${displayPhone}
+Constituency:      ${cleanConstituency}
+Category:          ${cleanCategory}
+Submitted Date:    ${formattedDate}
+Subject:           ${cleanSubject}
+
+FULL PETITION DESCRIPTION:
+--------------------------------------------------
+${cleanDetails}
+
+ATTACHED DOCUMENTS:
+--------------------------------------------------
+${attachmentName ? `${attachmentName} (${attachmentType || 'file'}) - Attached directly to this email` : 'None'}
+
+DATABASE STATUS:
+--------------------------------------------------
+Safely stored in MySQL database under Reference ID: ${referenceNo}.
+
+Constituency Office of CTR Nirmal Kumar
+Delivered automatically via Gmail SMTP to ${adminEmail}.
+  `;
+
+  const transporter = getOrCreateTransporter();
+  const mailOptions = {
+    from: senderFrom,
+    to: adminEmail,
+    subject: emailSubject,
+    text: textContent,
+    html,
+    attachments: mailAttachments.length > 0 ? mailAttachments : undefined
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Admin Petition Email Sent] Notification for ${referenceNo} successfully delivered to ${adminEmail} (MessageID: ${info.messageId})`);
+    return {
+      success: true,
+      messageId: info.messageId,
+      accepted: info.accepted
+    };
+  } catch (err) {
+    // If delivery with attachment failed (e.g. attachment size limit), retry sending text-only notification
+    if (mailAttachments.length > 0) {
+      console.warn(`[Admin Petition Email Warning] Delivery with attachment failed: ${err.message}. Retrying notification without attachment...`);
+      try {
+        const fallbackOptions = { ...mailOptions, attachments: undefined };
+        const info = await transporter.sendMail(fallbackOptions);
+        console.log(`[Admin Petition Email Sent] Fallback notification for ${referenceNo} delivered to ${adminEmail} (MessageID: ${info.messageId})`);
+        return {
+          success: true,
+          messageId: info.messageId,
+          fallback: true
+        };
+      } catch (retryErr) {
+        console.error(`[Admin Petition Email Error] Failed to send fallback notification for ${referenceNo} to ${adminEmail}:`, retryErr.message);
+        throw retryErr;
+      }
+    }
+    console.error(`[Admin Petition Email Error] Failed to send notification for ${referenceNo} to ${adminEmail}:`, err.message);
+    throw err;
+  }
+}
