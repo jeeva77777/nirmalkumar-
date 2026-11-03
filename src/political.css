@@ -3955,10 +3955,44 @@ main[lang="ta"] .portal-secondary {
     line-height: 1.5;
   }
 
-  .section-heading {
+  /* Section Headings Responsive (Universal - English & Tamil) */
+  .section-heading,
+  .gallery-heading {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .about-copy h2,
+  .section-heading h2,
+  .gallery-heading h2,
+  .connect-copy h2 {
+    font-size: clamp(22px, 5.8vw, 30px) !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto;
+    margin-bottom: 6px;
+  }
+
+  .about-copy h2 em,
+  .section-heading h2 em,
+  .gallery-heading h2 em,
+  .connect-copy h2 em {
+    font-size: clamp(17px, 4.6vw, 22px) !important;
+    line-height: 1.35 !important;
+    display: inline-block;
+    margin-top: 2px;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .section-heading > p,
+  .connect-copy p {
+    font-size: 13px !important;
+    line-height: 1.7 !important;
+    max-width: 100%;
   }
 
   .news-grid {
@@ -3966,9 +4000,100 @@ main[lang="ta"] .portal-secondary {
     gap: 24px;
   }
 
+  /* Gallery / Memories Responsive (<= 768px) */
+  .gallery-section {
+    padding: 48px 0 0;
+  }
+
+  .gallery-heading.section-pad {
+    padding-left: 5%;
+    padding-right: 5%;
+    margin-bottom: 22px;
+  }
+
+  .gallery-badge-pill {
+    align-self: flex-start;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 14px;
+  }
+
   .gallery-grid {
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: clamp(140px, 42vw, 210px);
+    grid-auto-rows: 150px;
+    gap: 10px;
+    padding: 0 5% 48px;
+  }
+
+  .gallery-grid .gallery-tile:nth-child(n) {
+    grid-column: span 1;
+    height: 150px;
+  }
+
+  .gallery-grid .gallery-tile:first-child {
+    grid-column: span 2;
+    height: 220px;
+  }
+
+  .gallery-tile {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(220, 209, 190, 0.18);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    background: #1e1816;
+  }
+
+  .gallery-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .gallery-tile > span {
+    bottom: 8px;
+    right: 8px;
+    padding: 3px 8px;
+    background: rgba(18, 5, 7, 0.82);
+    backdrop-filter: blur(8px);
+    border-radius: 6px;
+    border: 1px solid rgba(238, 200, 75, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Photo Lightbox Modal Responsive (<= 768px) */
+  .photo-lightbox-backdrop {
+    padding: 16px;
+  }
+
+  .photo-lightbox-content {
+    max-width: 96vw;
+    max-height: 88vh;
+  }
+
+  .photo-lightbox-img {
+    max-height: 72vh;
+    border-radius: 10px;
+  }
+
+  .photo-lightbox-caption {
+    font-size: 12px;
+    margin-top: 12px;
+  }
+
+  .photo-lightbox-close {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10001;
+    width: 42px;
+    height: 42px;
+    background: rgba(30, 10, 14, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(238, 200, 75, 0.6);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
   }
 
   .connect-section {
@@ -3993,58 +4118,162 @@ main[lang="ta"] .portal-secondary {
   }
 
   /* Constituency Ward Map Responsive (<= 768px) */
+  .constituency-map-section {
+    padding-top: 48px;
+    padding-bottom: 54px;
+  }
+
+  .constituency-map-section .section-heading {
+    margin-bottom: 20px;
+  }
+
+  .map-toolbar {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .map-category-pills {
+    gap: 6px;
+    padding-bottom: 4px;
+    margin: 0 -4px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .category-pill {
+    padding: 7px 13px;
+    font-size: 11.5px;
+  }
+
   .map-workspace-grid {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 16px;
   }
 
   .map-canvas-wrapper {
-    height: 420px;
-    min-height: 420px;
+    height: 330px;
+    min-height: 330px;
+    border-radius: 14px;
+  }
+
+  .map-floating-badge {
+    top: 10px;
+    left: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    max-width: calc(100% - 20px);
+  }
+
+  .map-floating-badge strong {
+    font-size: 10.5px;
+  }
+
+  .map-floating-badge small {
+    font-size: 8.5px;
   }
 
   .ward-stats-strip {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
-    padding: 18px 20px;
+    gap: 12px;
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .ward-stat-item {
+    width: 100%;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(184, 134, 11, 0.25);
+  }
+
+  .ward-stat-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   .ward-stat-separator {
-    display: none;
+    display: none !important;
   }
 
   .map-actions-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
   }
 
   .map-type-toggle {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: #eae2d4;
+    border: 1px solid var(--line-gold);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
+    box-sizing: border-box;
   }
 
   .map-type-toggle button {
-    flex: 1;
-    text-align: center;
-    padding: 6px 4px;
+    width: 100%;
+    padding: 8px 4px;
     font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: none;
+    box-sizing: border-box;
   }
 
   .map-button-group {
     width: 100%;
-    display: flex;
-    justify-content: stretch;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    box-sizing: border-box;
   }
 
   .map-button-group .toolbar-btn {
-    flex: 1;
+    width: 100%;
     justify-content: center;
-    padding: 7px 8px;
-    font-size: 11px;
+    padding: 9px 8px;
+    font-size: 11.5px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .map-button-group .toolbar-btn-gold {
+    grid-column: span 2;
+    padding: 11px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 9px;
+  }
+
+  .marker-detail-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  .detail-header h3 {
+    font-size: 16.5px;
+    line-height: 1.35;
+  }
+
+  .detail-body {
+    font-size: 12.5px;
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  .detail-nav-btn {
+    padding: 11px 14px;
+    font-size: 12px;
   }
 
   /* ============================================================
@@ -4585,21 +4814,61 @@ main[lang="ta"] .portal-secondary {
     font-size: 12px;
   }
 
+  .about-copy h2,
+  .section-heading h2,
+  .gallery-heading h2,
+  .connect-copy h2 {
+    font-size: clamp(19px, 5.6vw, 24px) !important;
+    line-height: 1.24 !important;
+  }
+
+  .about-copy h2 em,
+  .section-heading h2 em,
+  .gallery-heading h2 em,
+  .connect-copy h2 em {
+    font-size: clamp(15px, 4.4vw, 18.5px) !important;
+    line-height: 1.3 !important;
+  }
+
+  .gallery-section {
+    padding: 38px 0 0;
+  }
+
+  .gallery-heading.section-pad {
+    padding-left: 12px;
+    padding-right: 12px;
+    margin-bottom: 18px;
+  }
+
+  .gallery-grid {
+    grid-auto-rows: 130px;
+    gap: 8px;
+    padding: 0 12px 36px;
+  }
+
+  .gallery-grid .gallery-tile:nth-child(n) {
+    height: 130px;
+  }
+
+  .gallery-grid .gallery-tile:first-child {
+    height: 190px;
+  }
+
   .map-canvas-wrapper {
-    height: 360px;
-    min-height: 360px;
+    height: 300px;
+    min-height: 300px;
   }
 
   .marker-detail-card {
-    padding: 16px;
+    padding: 14px;
   }
 
   .detail-header h3 {
-    font-size: 16px;
+    font-size: 15.5px;
   }
 
   .ward-stats-strip {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   /* ============================================================
@@ -4762,12 +5031,12 @@ main[lang="ta"] .portal-secondary {
 /* 1. SECTION REVEAL (Hardware-Accelerated Fluid Glide) */
 .aadhav-section-reveal {
   opacity: 0;
-  transform: translateY(24px) translateZ(0);
+  transform: translateY(32px) translateZ(0);
   will-change: opacity, transform;
   backface-visibility: hidden;
   transition:
-    opacity 0.65s var(--ease-aadhav-section),
-    transform 0.65s var(--ease-aadhav-section);
+    opacity 0.75s var(--ease-aadhav-section),
+    transform 0.75s var(--ease-aadhav-section);
 }
 
 .aadhav-section-reveal.is-inview {
@@ -4778,18 +5047,18 @@ main[lang="ta"] .portal-secondary {
 /* 2. SECTION HEADINGS & EYEBROWS CASCADE */
 .aadhav-heading-reveal .eyebrow {
   opacity: 0;
-  transform: translateY(12px) translateZ(0);
+  transform: translateY(14px) translateZ(0);
   transition:
-    opacity 0.5s var(--ease-aadhav-heading) 0.04s,
-    transform 0.5s var(--ease-aadhav-heading) 0.04s;
+    opacity 0.55s var(--ease-aadhav-heading) 0.05s,
+    transform 0.55s var(--ease-aadhav-heading) 0.05s;
 }
 
 .aadhav-heading-reveal h2 {
   opacity: 0;
-  transform: translateY(16px) translateZ(0);
+  transform: translateY(22px) translateZ(0);
   transition:
-    opacity 0.55s var(--ease-aadhav-section) 0.08s,
-    transform 0.55s var(--ease-aadhav-section) 0.08s;
+    opacity 0.68s var(--ease-aadhav-section) 0.12s,
+    transform 0.68s var(--ease-aadhav-section) 0.12s;
 }
 
 .aadhav-heading-reveal p,
@@ -4797,10 +5066,10 @@ main[lang="ta"] .portal-secondary {
 .aadhav-heading-reveal .section-badge-pill,
 .aadhav-heading-reveal .gallery-badge-pill {
   opacity: 0;
-  transform: translateY(14px) translateZ(0);
+  transform: translateY(18px) translateZ(0);
   transition:
-    opacity 0.5s var(--ease-aadhav-heading) 0.12s,
-    transform 0.5s var(--ease-aadhav-heading) 0.12s;
+    opacity 0.6s var(--ease-aadhav-heading) 0.18s,
+    transform 0.6s var(--ease-aadhav-heading) 0.18s;
 }
 
 .aadhav-section-reveal.is-inview .aadhav-heading-reveal .eyebrow,
@@ -4812,7 +5081,9 @@ main[lang="ta"] .portal-secondary {
 .aadhav-heading-reveal.is-inview .eyebrow,
 .aadhav-heading-reveal.is-inview h2,
 .aadhav-heading-reveal.is-inview p,
-.aadhav-heading-reveal.is-inview .lead {
+.aadhav-heading-reveal.is-inview .lead,
+.aadhav-heading-reveal.is-inview .section-badge-pill,
+.aadhav-heading-reveal.is-inview .gallery-badge-pill {
   opacity: 1;
   transform: translateY(0) translateZ(0);
 }
@@ -4820,17 +5091,16 @@ main[lang="ta"] .portal-secondary {
 /* 3. STAGGERED CARDS & GRID ITEMS */
 .aadhav-item-reveal {
   opacity: 0;
-  transform: translateY(18px) translateZ(0);
+  transform: translateY(30px) translateZ(0);
   will-change: opacity, transform;
   backface-visibility: hidden;
   transition:
-    opacity 0.52s var(--ease-aadhav-section),
-    transform 0.52s var(--ease-aadhav-section);
-  transition-delay: calc(var(--aadhav-stagger, 0) * 0.045s + 0.03s);
+    opacity 0.68s var(--ease-aadhav-section),
+    transform 0.68s var(--ease-aadhav-section);
+  transition-delay: calc(var(--aadhav-stagger, 0) * 0.08s);
 }
 
-.aadhav-item-reveal.is-inview,
-.aadhav-section-reveal.is-inview .aadhav-item-reveal {
+.aadhav-item-reveal.is-inview {
   opacity: 1;
   transform: translateY(0) translateZ(0);
 }
@@ -4919,14 +5189,13 @@ main[lang="ta"] .portal-secondary {
 /* 7. MOBILE RESPONSIVE TUNING */
 @media (max-width: 768px) {
   .aadhav-section-reveal {
-    transform: translateY(18px);
-    transition-duration: 0.45s;
+    transform: translateY(24px);
+    transition-duration: 0.62s;
   }
 
   .aadhav-item-reveal {
-    transform: translateY(14px);
-    transition-duration: 0.4s;
-
+    transform: translateY(22px);
+    transition-duration: 0.6s;
   }
 }
 

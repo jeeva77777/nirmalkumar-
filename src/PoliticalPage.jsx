@@ -423,7 +423,7 @@ export default function PoliticalPage() {
   }, []);
 
   useEffect(() => {
-    // High-Performance Hardware-Accelerated Scroll-Trigger Reveal
+    // High-Performance Hardware-Accelerated Scroll-Trigger Reveal (Aadhav Flow)
     const sections = Array.from(document.querySelectorAll(
       ".mandate-strip, .about-section, .portfolio-section, .mla-office-banner-section, .constituency-map-section, .news-section, .gallery-section, .connect-section, .site-footer"
     ));
@@ -431,7 +431,7 @@ export default function PoliticalPage() {
       ".about-copy, .section-heading, .gallery-heading, .connect-header, .mla-office-details, .constituency-map-header"
     ));
     const cardGrids = Array.from(document.querySelectorAll(
-      ".mandate-strip, .portfolio-grid, .news-grid, .gallery-grid, .social-cards-grid, .education-items"
+      ".mandate-strip, .portfolio-grid, .news-grid, .gallery-grid, .social-cards-grid, .education-items, .map-toolbar, .map-workspace-grid, .ward-stats-strip"
     ));
 
     sections.forEach((sec) => sec.classList.add("aadhav-section-reveal"));
@@ -441,7 +441,7 @@ export default function PoliticalPage() {
     cardGrids.forEach((grid) => {
       Array.from(grid.children).forEach((child, idx) => {
         child.classList.add("aadhav-item-reveal");
-        child.style.setProperty("--aadhav-stagger", Math.min(idx, 6).toString());
+        child.style.setProperty("--aadhav-stagger", (idx % 3).toString());
         itemElements.push(child);
       });
     });
@@ -455,11 +455,11 @@ export default function PoliticalPage() {
 
     const allTargets = [...sections, ...headings, ...itemElements];
 
-    // Immediately activate elements already in view to prevent flicker
+    // Immediately activate elements in initial viewport fold
     const windowH = window.innerHeight;
     allTargets.forEach((target) => {
       const rect = target.getBoundingClientRect();
-      if (rect.top < windowH + 120) {
+      if (rect.top < windowH * 0.72 && rect.bottom > 0) {
         target.classList.add("is-inview");
       }
     });
@@ -479,8 +479,8 @@ export default function PoliticalPage() {
         });
       },
       {
-        threshold: 0.02,
-        rootMargin: "140px 0px 140px 0px"
+        threshold: 0.05,
+        rootMargin: "0px 0px -40px 0px"
       }
     );
 
