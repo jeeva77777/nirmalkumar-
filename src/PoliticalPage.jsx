@@ -592,9 +592,7 @@ export default function PoliticalPage() {
       setPortalStage("login-otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
-      if (data.otp) {
-        setOtp(data.otp);
-      }
+      setOtp("");
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -729,9 +727,7 @@ export default function PoliticalPage() {
       setPortalStage("otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
-      if (data.otp) {
-        setOtp(data.otp);
-      }
+      setOtp("");
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -818,9 +814,7 @@ export default function PoliticalPage() {
       setPortalStage("track-otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
-      if (data.otp) {
-        setOtp(data.otp);
-      }
+      setOtp("");
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -886,9 +880,7 @@ export default function PoliticalPage() {
       });
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message || (tamil ? "புதிய சரிபார்ப்புக் குறியீடு அனுப்பப்பட்டது." : "New verification code sent."));
-      if (data.otp) {
-        setOtp(data.otp);
-      }
+      setOtp("");
     } catch (err) {
       setErrorMessage(err.message);
     } finally {

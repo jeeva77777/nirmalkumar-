@@ -245,32 +245,25 @@ app.post('/api/otp/send', otpSendLimiter, async (req, res) => {
     // Dispatch delivery FIRST: strictly do not mark or store OTP as sent if delivery fails!
     let deliveryMessage = '';
     let deliveryChannel = 'email';
-    let returnOtp = undefined;
 
     if (cleanEmail) {
-      // Send real email via Gmail SMTP or HTTPS API (Resend/Brevo) with Render cloud fallback
-      const emailResult = await sendEmailOtp({
+      // Send real email via Gmail SMTP (or Resend API if configured)
+      await sendEmailOtp({
         email: cleanEmail,
         otp,
         purpose,
         referenceNo: cleanRef
       });
-      if (emailResult && emailResult.isCloudFallback) {
-        deliveryMessage = emailResult.message;
-        deliveryChannel = 'cloud_fallback';
-        returnOtp = otp;
-      } else {
-        deliveryMessage = `A 6-digit verification code has been sent to ${maskEmail(cleanEmail)}.`;
-        deliveryChannel = 'email';
-      }
+      deliveryMessage = `A 6-digit verification code has been sent to ${maskEmail(cleanEmail)}.`;
+      deliveryChannel = 'email';
     } else {
       // SMS delivery fallback
-      const smsResult = await sendOtpSms(cleanPhone, otp, purpose);
+      await sendOtpSms(cleanPhone, otp, purpose);
       deliveryMessage = `Verification code sent to +91 ******${cleanPhone.slice(-4)}.`;
       deliveryChannel = 'sms';
     }
 
-    // Save to database only after the message is accepted by the SMTP server / cloud fallback
+    // Save to database only after the message is accepted by the SMTP server
     await pool.query(
       `INSERT INTO otp_verifications (email, phone, otp_hash, purpose, reference_no, expires_at)
        VALUES (?, ?, ?, ?, ?, NOW() + INTERVAL 5 MINUTE)`,
@@ -288,8 +281,7 @@ app.post('/api/otp/send', otpSendLimiter, async (req, res) => {
       message: deliveryMessage,
       cooldownSeconds: RESEND_COOLDOWN_SECONDS,
       channel: deliveryChannel,
-      destination: cleanEmail ? maskEmail(cleanEmail) : `+91 ******${cleanPhone.slice(-4)}`,
-      otp: returnOtp
+      destination: cleanEmail ? maskEmail(cleanEmail) : `+91 ******${cleanPhone.slice(-4)}`
     });
   } catch (error) {
     console.error('[Send OTP Error]:', error.message);

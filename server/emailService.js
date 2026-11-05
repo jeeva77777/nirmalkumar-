@@ -431,18 +431,8 @@ Sender: ${senderUser}
   // 2. Validate SMTP configuration before attempting raw socket transport
   const status = getSmtpStatus();
   if (!status.isConfigured) {
-    if (process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.NODE_ENV !== 'production' || process.env.ENABLE_FALLBACK_OTP === 'true') {
-      console.warn(`[Cloud Notice] SMTP not configured on cloud host. Using cloud fallback OTP for ${cleanEmail}: ${otp}`);
-      return {
-        success: true,
-        isCloudFallback: true,
-        otp,
-        channel: 'cloud_fallback',
-        message: `Verification code: ${otp} (Cloud Notice: Render free tier fallback. Code provided here for instant verification).`
-      };
-    }
     throw new Error(
-      'Gmail SMTP is not configured on the server. Please set SMTP_APP_PASSWORD in your .env file with a 16-character Google App Password for ironkyle007@gmail.com (requires Google Account 2-Step Verification).'
+      'Gmail SMTP is not configured on the server. Please set SMTP_APP_PASSWORD in your environment variables with a 16-character Google App Password for ironkyle007@gmail.com (requires Google Account 2-Step Verification).'
     );
   }
 
@@ -493,9 +483,9 @@ Sender: ${senderUser}
             user: (process.env.SMTP_USER || 'ironkyle007@gmail.com').trim(),
             pass: (process.env.SMTP_APP_PASSWORD || '').trim().replace(/\s+/g, '')
           },
-          connectionTimeout: 3500,
-          greetingTimeout: 3500,
-          socketTimeout: 5000
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 7000
         });
 
         const sslInfo = await sslTransporter.sendMail({
@@ -515,17 +505,10 @@ Sender: ${senderUser}
         console.warn(`[SMTP Port 465 Blocked]:`, sslErr.message);
       }
 
-      // 4. Cloud Host Port Block Detected (Render Free Tier)
-      // Render free tier blocks outbound ports 25, 465, 587 to prevent spam.
-      // Safely activate Cloud Fallback mode so the user can verify immediately without blocking errors!
-      console.warn(`[Cloud Fallback Active] Cloud hosting (Render Free) blocked outbound SMTP. Generating verified Cloud Fallback OTP for ${cleanEmail}: ${otp}`);
-      return {
-        success: true,
-        isCloudFallback: true,
-        otp,
-        channel: 'cloud_fallback',
-        message: `Verification code: ${otp} (Cloud Notice: Render Free blocks SMTP port 587. Code provided here for instant verification).`
-      };
+      throw new Error(
+        'Gmail SMTP Connection Failed (ETIMEDOUT): Unable to reach smtp.gmail.com on port 587 or 465. ' +
+        'Please ensure outbound SMTP ports are not blocked by the hosting network, or configure RESEND_API_KEY in environment variables for HTTPS-based delivery.'
+      );
     }
 
     // Provide crystal-clear troubleshooting guidance for Gmail SMTP credentials errors
