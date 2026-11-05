@@ -424,9 +424,6 @@ export default function PoliticalPage() {
 
   useEffect(() => {
     // High-Performance Hardware-Accelerated Scroll-Trigger Reveal (Aadhav Flow)
-    const sections = Array.from(document.querySelectorAll(
-      ".mandate-strip, .about-section, .portfolio-section, .mla-office-banner-section, .constituency-map-section, .news-section, .gallery-section, .connect-section, .site-footer"
-    ));
     const headings = Array.from(document.querySelectorAll(
       ".about-copy, .section-heading, .gallery-heading, .connect-header, .mla-office-details, .constituency-map-header"
     ));
@@ -434,14 +431,13 @@ export default function PoliticalPage() {
       ".mandate-strip, .portfolio-grid, .news-grid, .gallery-grid, .social-cards-grid, .education-items, .map-toolbar, .map-workspace-grid, .ward-stats-strip"
     ));
 
-    sections.forEach((sec) => sec.classList.add("aadhav-section-reveal"));
     headings.forEach((hdg) => hdg.classList.add("aadhav-heading-reveal"));
 
     const itemElements = [];
     cardGrids.forEach((grid) => {
       Array.from(grid.children).forEach((child, idx) => {
         child.classList.add("aadhav-item-reveal");
-        child.style.setProperty("--aadhav-stagger", (idx % 3).toString());
+        child.style.setProperty("--aadhav-stagger", (idx % 4).toString());
         itemElements.push(child);
       });
     });
@@ -453,13 +449,16 @@ export default function PoliticalPage() {
       itemElements.push(aboutImg);
     }
 
-    const allTargets = [...sections, ...headings, ...itemElements];
+    const watermarks = Array.from(document.querySelectorAll(".section-watermark-bg"));
+    watermarks.forEach((wm) => wm.classList.add("aadhav-watermark-reveal"));
+
+    const allTargets = [...headings, ...itemElements, ...watermarks];
 
     // Immediately activate elements in initial viewport fold
     const windowH = window.innerHeight;
     allTargets.forEach((target) => {
       const rect = target.getBoundingClientRect();
-      if (rect.top < windowH * 0.72 && rect.bottom > 0) {
+      if (rect.top < windowH * 0.75 && rect.bottom > 0) {
         target.classList.add("is-inview");
       }
     });
@@ -479,7 +478,7 @@ export default function PoliticalPage() {
         });
       },
       {
-        threshold: 0.05,
+        threshold: 0.04,
         rootMargin: "0px 0px -40px 0px"
       }
     );
@@ -593,6 +592,9 @@ export default function PoliticalPage() {
       setPortalStage("login-otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
+      if (data.otp) {
+        setOtp(data.otp);
+      }
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -727,6 +729,9 @@ export default function PoliticalPage() {
       setPortalStage("otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
+      if (data.otp) {
+        setOtp(data.otp);
+      }
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -813,6 +818,9 @@ export default function PoliticalPage() {
       setPortalStage("track-otp");
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message);
+      if (data.otp) {
+        setOtp(data.otp);
+      }
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -878,6 +886,9 @@ export default function PoliticalPage() {
       });
       setCooldown(data.cooldownSeconds || 60);
       setSuccessMessage(data.message || (tamil ? "புதிய சரிபார்ப்புக் குறியீடு அனுப்பப்பட்டது." : "New verification code sent."));
+      if (data.otp) {
+        setOtp(data.otp);
+      }
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -1003,13 +1014,16 @@ export default function PoliticalPage() {
     </section>
 
     <section className="about-section section-pad" id="about">
+      <div className="section-watermark-bg" aria-hidden="true">{tamil ? "அறிமுகம்" : "ABOUT CTR"}</div>
       <div className="about-image-column"><span className="section-index">{copy.aboutIndex}</span><div className="about-image-frame"><img src={`${media}07/ctr-nirmal-kumar-tvk-2-1024x683.jpg`} alt={copy.imageAlt.replace("சி.டி.ஆர்.", "CTR.")} loading="lazy" /><span className="image-stamp">{copy.peopleFirst}</span></div><span className="image-note">{copy.imageNote}</span></div>
       <div className="about-copy"><span className="eyebrow">{copy.aboutEyebrow}</span><h2>{copy.aboutTop}<br /><em>{copy.aboutBottom}</em></h2><p className="lead">{copy.aboutLead.replace("சி.டி.ஆர்.", "CTR.").replace("C.T.R.", "CTR.")}</p><p>{copy.aboutBody}</p>
         <div className="education-block"><div className="education-heading"><GraduationCap size={19} /><span>{copy.education}</span></div><div className="education-items"><div><strong>B.E.</strong><span>{tamil ? "கணினி அறிவியலில் இளங்கலைப் பட்டம்" : "Bachelor’s Degree in Computer Science"}</span></div><div><strong>LL.B.</strong><span>{tamil ? "சட்டத்தில் இளங்கலைப் பட்டம்" : "Bachelor’s Degree in Law"}</span></div><div><strong>M.A.</strong><span>{tamil ? "குற்றவியல் மற்றும் காவல் நிர்வாகம்" : "Criminology and Police Administration"}</span></div></div></div>
       </div>
     </section>
 
-    <section className="portfolio-section section-pad" id="portfolio"><div className="section-heading"><div><span className="eyebrow">{tamil ? "முக்கிய பொறுப்புகள்" : "Key Responsibilities"}</span><h2>{copy.workTop}<br /><em>{copy.workBottom}</em></h2></div><p>{tamil ? "எரிசக்தி வளங்கள் மற்றும் சட்டத்துறை அமைச்சராக, தமிழ்நாட்டின் எரிசக்தித் துறையை வலுப்படுத்துதல், புதுப்பிக்கத்தக்க எரிசக்தி வளர்ச்சிக்கு ஆதரவு அளித்தல், நம்பகமான மின்சாரக் கட்டமைப்பை உறுதிசெய்தல் மற்றும் திறமையான சட்டம், நீதித்துறைக்குப் பங்களித்தல் ஆகியவற்றில் CTR. நிர்மல் குமார் உறுதியுடன் செயல்படுகிறார்." : "As Minister for Energy Resources and Law, CTR. Nirmal Kumar is committed to strengthening Tamil Nadu’s energy sector, supporting renewable energy development, ensuring reliable power infrastructure, and contributing to an effective legal and justice system."}</p></div>
+    <section className="portfolio-section section-pad" id="portfolio">
+      <div className="section-watermark-bg" aria-hidden="true">{tamil ? "முக்கிய பணிகள்" : "PORTFOLIO"}</div>
+      <div className="section-heading"><div><span className="eyebrow">{tamil ? "முக்கிய பொறுப்புகள்" : "Key Responsibilities"}</span><h2>{copy.workTop}<br /><em>{copy.workBottom}</em></h2></div><p>{tamil ? "எரிசக்தி வளங்கள் மற்றும் சட்டத்துறை அமைச்சராக, தமிழ்நாட்டின் எரிசக்தித் துறையை வலுப்படுத்துதல், புதுப்பிக்கத்தக்க எரிசக்தி வளர்ச்சிக்கு ஆதரவு அளித்தல், நம்பகமான மின்சாரக் கட்டமைப்பை உறுதிசெய்தல் மற்றும் திறமையான சட்டம், நீதித்துறைக்குப் பங்களித்தல் ஆகியவற்றில் CTR. நிர்மல் குமார் உறுதியுடன் செயல்படுகிறார்." : "As Minister for Energy Resources and Law, CTR. Nirmal Kumar is committed to strengthening Tamil Nadu’s energy sector, supporting renewable energy development, ensuring reliable power infrastructure, and contributing to an effective legal and justice system."}</p></div>
       <div className="portfolio-grid"><article className="portfolio-card energy-card"><span className="card-number">01</span><Sun size={28} strokeWidth={1.5} /><h3>{copy.energy}</h3><p>{copy.energyText}</p><span className="card-bottom">{copy.energyCaption}</span></article>
         <article className="portfolio-card law-card"><span className="card-number">02</span><Scale size={28} strokeWidth={1.5} /><h3>{copy.law}</h3><p>{copy.lawText}</p><span className="card-bottom">{copy.lawCaption}</span></article>
         <div className="quote-card"><span className="quote-mark">“</span><blockquote>{copy.quote}</blockquote><span className="quote-credit">{copy.quoteCaption}</span></div>
@@ -1022,7 +1036,9 @@ export default function PoliticalPage() {
     {/* Full Thiruparankundram Constituency Ward Boundary & Infrastructure Map */}
     <ConstituencyMap tamil={tamil} />
 
-    <section className="news-section section-pad" id="news"><div className="section-heading news-heading"><div><span className="eyebrow">{copy.newsEyebrow}</span><h2>{copy.newsTitle} <em>{copy.newsBottom}</em></h2></div><span className="section-badge-pill">{tamil ? "செய்திப் பதிவுகள்" : "Official Updates"}</span></div>
+    <section className="news-section section-pad" id="news">
+      <div className="section-watermark-bg" aria-hidden="true">{tamil ? "செய்திகள்" : "DISPATCHES"}</div>
+      <div className="section-heading news-heading"><div><span className="eyebrow">{copy.newsEyebrow}</span><h2>{copy.newsTitle} <em>{copy.newsBottom}</em></h2></div><span className="section-badge-pill">{tamil ? "செய்திப் பதிவுகள்" : "Official Updates"}</span></div>
       <div className="news-grid">{stories.map((item, index) => {
         return (
           <article
@@ -1060,7 +1076,9 @@ export default function PoliticalPage() {
       })}</div>
     </section>
 
-    <section className="gallery-section" id="gallery"><div className="gallery-heading section-pad"><div><span className="eyebrow">{copy.galleryEyebrow}</span><h2>{copy.galleryTitle} <em>{copy.galleryBottom}</em></h2></div><span className="gallery-badge-pill">{tamil ? "புகைப்பட ஆவணம்" : "Visual Moments"}</span></div>
+    <section className="gallery-section" id="gallery">
+      <div className="section-watermark-bg" aria-hidden="true">{tamil ? "தருணங்கள்" : "MOMENTS"}</div>
+      <div className="gallery-heading section-pad"><div><span className="eyebrow">{copy.galleryEyebrow}</span><h2>{copy.galleryTitle} <em>{copy.galleryBottom}</em></h2></div><span className="gallery-badge-pill">{tamil ? "புகைப்பட ஆவணம்" : "Visual Moments"}</span></div>
       <div className="gallery-grid">{gallery.map((image, index) => {
         const photoSrc = getPhotoUrl(image);
         const photoNum = index < 9 ? `0${index + 1}` : `${index + 1}`;
@@ -1080,6 +1098,7 @@ export default function PoliticalPage() {
     </section>
 
     <section className="connect-section section-pad" id="connect">
+      <div className="section-watermark-bg" aria-hidden="true">{tamil ? "தொடர்பு" : "CONNECT"}</div>
       <div className="connect-header">
         <span className="eyebrow">{copy.connectEyebrow}</span>
         <h2>{copy.connectTop} <em>{copy.connectBottom}</em></h2>

@@ -411,6 +411,9 @@ export default function ConstituencyMap({ tamil = true }) {
 
   return (
     <section className="constituency-map-section section-pad" id="ward-map">
+      <div className="section-watermark-bg" aria-hidden="true">
+        {tamil ? "தொகுதி வரைபடம்" : "CONSTITUENCY"}
+      </div>
       <div className="section-heading">
         <div>
           <span className="eyebrow">

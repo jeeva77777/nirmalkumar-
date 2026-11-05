@@ -5028,37 +5028,83 @@ main[lang="ta"] .portal-secondary {
    Blur-to-Focus Glide, Smooth Staggered Reveals, Fluid Transitions
    ============================================================ */
 
-/* 1. SECTION REVEAL (Hardware-Accelerated Fluid Glide) */
-.aadhav-section-reveal {
+/* Grounded Section Containers with Relative Isolation */
+.about-section,
+.portfolio-section,
+.constituency-map-section,
+.news-section,
+.gallery-section,
+.connect-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.about-copy,
+.about-image-column,
+.section-heading,
+.gallery-heading,
+.connect-header,
+.portfolio-grid,
+.news-grid,
+.gallery-grid,
+.social-cards-container,
+.map-toolbar,
+.map-workspace-grid,
+.ward-stats-strip {
+  position: relative;
+  z-index: 1;
+}
+
+/* 1. SECTION WATERMARK TYPOGRAPHY (Aadhav Style Editorial Backdrop) */
+.section-watermark-bg {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  font-family: var(--font-serif);
+  font-size: clamp(48px, 11vw, 130px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(99, 22, 24, 0.045);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 0;
+  line-height: 1;
   opacity: 0;
-  transform: translateY(32px) translateZ(0);
-  will-change: opacity, transform;
-  backface-visibility: hidden;
   transition:
-    opacity 0.75s var(--ease-aadhav-section),
-    transform 0.75s var(--ease-aadhav-section);
+    opacity 1.1s var(--ease-aadhav-section),
+    transform 1.1s var(--ease-aadhav-section);
 }
 
-.aadhav-section-reveal.is-inview {
+.gallery-section .section-watermark-bg {
+  color: rgba(255, 255, 255, 0.038);
+}
+
+.section-watermark-bg.is-inview,
+.aadhav-watermark-reveal.is-inview {
   opacity: 1;
-  transform: translateY(0) translateZ(0);
+  transform: translateX(-50%) translateY(0);
 }
 
-/* 2. SECTION HEADINGS & EYEBROWS CASCADE */
+/* 2. SECTION HEADINGS & EYEBROWS CASCADE (Blur-to-Focus Entrance) */
 .aadhav-heading-reveal .eyebrow {
   opacity: 0;
   transform: translateY(14px) translateZ(0);
   transition:
-    opacity 0.55s var(--ease-aadhav-heading) 0.05s,
-    transform 0.55s var(--ease-aadhav-heading) 0.05s;
+    opacity 0.6s var(--ease-aadhav-heading) 0.04s,
+    transform 0.6s var(--ease-aadhav-heading) 0.04s;
 }
 
 .aadhav-heading-reveal h2 {
   opacity: 0;
-  transform: translateY(22px) translateZ(0);
+  transform: translateY(24px) translateZ(0);
+  filter: blur(4px);
   transition:
-    opacity 0.68s var(--ease-aadhav-section) 0.12s,
-    transform 0.68s var(--ease-aadhav-section) 0.12s;
+    opacity 0.72s var(--ease-aadhav-section) 0.08s,
+    transform 0.72s var(--ease-aadhav-section) 0.08s,
+    filter 0.72s var(--ease-aadhav-section) 0.08s;
 }
 
 .aadhav-heading-reveal p,
@@ -5068,16 +5114,10 @@ main[lang="ta"] .portal-secondary {
   opacity: 0;
   transform: translateY(18px) translateZ(0);
   transition:
-    opacity 0.6s var(--ease-aadhav-heading) 0.18s,
-    transform 0.6s var(--ease-aadhav-heading) 0.18s;
+    opacity 0.65s var(--ease-aadhav-heading) 0.14s,
+    transform 0.65s var(--ease-aadhav-heading) 0.14s;
 }
 
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal .eyebrow,
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal h2,
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal p,
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal .lead,
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal .section-badge-pill,
-.aadhav-section-reveal.is-inview .aadhav-heading-reveal .gallery-badge-pill,
 .aadhav-heading-reveal.is-inview .eyebrow,
 .aadhav-heading-reveal.is-inview h2,
 .aadhav-heading-reveal.is-inview p,
@@ -5086,23 +5126,24 @@ main[lang="ta"] .portal-secondary {
 .aadhav-heading-reveal.is-inview .gallery-badge-pill {
   opacity: 1;
   transform: translateY(0) translateZ(0);
+  filter: blur(0);
 }
 
 /* 3. STAGGERED CARDS & GRID ITEMS */
 .aadhav-item-reveal {
   opacity: 0;
-  transform: translateY(30px) translateZ(0);
+  transform: translateY(28px) scale(0.975) translateZ(0);
   will-change: opacity, transform;
   backface-visibility: hidden;
   transition:
-    opacity 0.68s var(--ease-aadhav-section),
-    transform 0.68s var(--ease-aadhav-section);
-  transition-delay: calc(var(--aadhav-stagger, 0) * 0.08s);
+    opacity 0.72s var(--ease-aadhav-section),
+    transform 0.72s var(--ease-aadhav-section);
+  transition-delay: calc(var(--aadhav-stagger, 0) * 0.09s);
 }
 
 .aadhav-item-reveal.is-inview {
   opacity: 1;
-  transform: translateY(0) translateZ(0);
+  transform: translateY(0) scale(1) translateZ(0);
 }
 
 /* 4. BUTTONS & ICON MICRO-INTERACTIONS */
@@ -5133,46 +5174,108 @@ main[lang="ta"] .portal-secondary {
   transform: translateY(3px);
 }
 
+/* Luxury Button Shimmer Effect (Continuous Elegant Light Sweep) */
+.button-gold,
+.header-cta {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-gold::before,
+.header-cta::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.38) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  animation: button-shimmer-sweep 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes button-shimmer-sweep {
+  0%, 75% {
+    left: -120%;
+  }
+  100% {
+    left: 220%;
+  }
+}
+
 /* 5. CARD HOVER MOTION & IMAGE SMOOTH EXPANSION */
 .portfolio-card,
 .quote-card,
 .news-card,
 .gallery-tile,
+.social-media-card,
 .mandate-strip>div {
   transition:
-    transform 0.35s var(--ease-aadhav-heading),
-    box-shadow 0.35s var(--ease-aadhav-heading),
-    border-color 0.35s var(--ease-aadhav-heading);
+    transform 0.4s var(--ease-aadhav-heading),
+    box-shadow 0.4s var(--ease-aadhav-heading),
+    border-color 0.4s var(--ease-aadhav-heading);
 }
 
 .portfolio-card:hover,
 .news-card:hover,
 .gallery-tile:hover {
-  transform: translateY(-6px);
+  transform: translateY(-8px) scale(1.008);
+  box-shadow: 0 20px 45px rgba(99, 22, 24, 0.2), 0 0 0 1px rgba(238, 200, 75, 0.38);
+}
+
+.social-media-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(238, 200, 75, 0.4);
 }
 
 .news-image img {
-  transition: transform 0.65s var(--ease-aadhav-section);
+  transition: transform 0.75s var(--ease-aadhav-section);
 }
 
 .news-card:hover .news-image img {
-  transform: scale(1.045);
-}
-
-.gallery-tile img {
-  transition: transform 0.65s var(--ease-aadhav-section);
-}
-
-.gallery-tile:hover img {
   transform: scale(1.055);
 }
 
+.gallery-tile img {
+  transition: transform 0.75s var(--ease-aadhav-section);
+}
+
+.gallery-tile:hover img {
+  transform: scale(1.065);
+}
+
 .about-image-frame img {
-  transition: transform 0.8s var(--ease-aadhav-section);
+  transition: transform 0.85s var(--ease-aadhav-section);
 }
 
 .about-image-frame:hover img {
-  transform: scale(1.025);
+  transform: scale(1.03);
+}
+
+/* Floating Back to Top Button Animation */
+.back-to-top-btn {
+  animation: aadhav-float-pulse 3.6s ease-in-out infinite;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aadhav-float-pulse {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.back-to-top-btn:hover {
+  transform: translateY(-8px) scale(1.1) !important;
+  box-shadow: 0 10px 24px rgba(238, 200, 75, 0.45) !important;
 }
 
 /* 6. MODAL & LIGHTBOX ANIMATIONS */
@@ -5188,14 +5291,14 @@ main[lang="ta"] .portal-secondary {
 
 /* 7. MOBILE RESPONSIVE TUNING */
 @media (max-width: 768px) {
-  .aadhav-section-reveal {
-    transform: translateY(24px);
-    transition-duration: 0.62s;
+  .section-watermark-bg {
+    font-size: clamp(36px, 12vw, 72px);
+    top: 8px;
   }
 
   .aadhav-item-reveal {
-    transform: translateY(22px);
-    transition-duration: 0.6s;
+    transform: translateY(22px) scale(0.985);
+    transition-duration: 0.62s;
   }
 }
 
