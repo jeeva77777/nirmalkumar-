@@ -159,6 +159,40 @@ export async function sendEmailViaHttpApi({ to, subject, html, text }) {
   const cleanTo = (to || '').trim().toLowerCase();
   const resendKey = (process.env.RESEND_API_KEY || '').trim();
   const brevoKey = (process.env.BREVO_API_KEY || '').trim();
+  const googleScriptUrl = (process.env.GOOGLE_SCRIPT_URL || '').trim();
+
+  // 1. Google Apps Script Webhook (Sends directly from your personal Gmail over HTTPS port 443)
+  if (googleScriptUrl) {
+    try {
+      const res = await fetch(googleScriptUrl, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({
+          to: cleanTo,
+          subject,
+          html,
+          text
+        })
+      });
+      const textResponse = await res.text();
+      let data = {};
+      try {
+        data = JSON.parse(textResponse);
+      } catch {
+        data = { raw: textResponse };
+      }
+      if (res.ok && (data.success || (typeof textResponse === 'string' && textResponse.includes('success')))) {
+        console.log(`[Google Apps Script Success] Email successfully sent to ${cleanTo} via ironkyle007@gmail.com`);
+        return { success: true, provider: 'google_script' };
+      }
+      console.warn(`[Google Apps Script Warning]:`, textResponse);
+    } catch (err) {
+      console.warn(`[Google Apps Script Exception]:`, err.message);
+    }
+  }
 
   if (resendKey) {
     try {
