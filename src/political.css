@@ -6154,29 +6154,33 @@ main[lang="ta"] .portal-secondary {
   color: var(--gold-300);
 }
 
-.portal-admin-switch-row {
-  margin-top: 14px;
+.portal-dialog.portal-dialog-admin {
+  width: min(96vw, 1320px);
+  max-height: min(94svh, 880px);
+  padding: 16px 20px;
+}
+
+.portal-admin-link-row {
+  margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid var(--line);
+  border-top: 1px dashed var(--line);
   text-align: center;
 }
 
-.portal-admin-switch-btn {
+.portal-admin-text-link {
   background: transparent;
   border: none;
-  color: var(--maroon-primary);
+  color: var(--ink-muted);
   font-size: 11px;
   font-weight: 600;
+  text-decoration: underline;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  padding: 4px;
   transition: color 0.2s ease;
+  padding: 4px;
 }
 
-.portal-admin-switch-btn:hover {
-  color: var(--maroon-accent);
-  text-decoration: underline;
+.portal-admin-text-link:hover {
+  color: var(--maroon-primary);
 }
 
 /* Fullscreen / Modal Backdrop */
