@@ -4,6 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { initDatabase, getPool, getDbStatus } from './db.js';
 import {
@@ -751,6 +752,337 @@ app.post('/api/citizen/my-petitions', petitionActionLimiter, async (req, res) =>
   } catch (error) {
     console.error('[My Petitions Error]:', error.message);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==========================================
+// MLA CONSTITUENCY OFFICE ADMIN PORTAL APIS
+// ==========================================
+
+// In-memory admin session storage: sessionToken -> { username, role, loginAt }
+const adminSessions = new Map();
+
+function verifyAdminSession(req) {
+  const authHeader = req.headers.authorization || '';
+  let token = '';
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (req.headers['x-admin-token']) {
+    token = String(req.headers['x-admin-token']).trim();
+  }
+  if (!token) return null;
+  const session = adminSessions.get(token);
+  if (!session) return null;
+
+  // Session expiry: 7 days
+  if (Date.now() - session.loginAt > 7 * 24 * 60 * 60 * 1000) {
+    adminSessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function requireAdminAuth(req, res, next) {
+  const session = verifyAdminSession(req);
+  if (!session) {
+    return res.status(401).json({
+      success: false,
+      message: 'அங்கீகரிக்கப்படாத அணுகல். நிர்வாக அமர்வு காலாவதியானது (Unauthorized admin session. Please log in again).'
+    });
+  }
+  req.adminSession = session;
+  next();
+}
+
+/**
+ * Admin Login Endpoint
+ * Default credentials: username 'admin', password '1234'
+ */
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const configuredUser = (process.env.ADMIN_USERNAME || 'admin').trim();
+    const configuredPass = (process.env.ADMIN_PASSWORD || '1234').trim();
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'பயனர்பெயர் மற்றும் கடவுச்சொல்லை உள்ளிடவும் (Username and password are required).'
+      });
+    }
+
+    if (username.trim() !== configuredUser || String(password).trim() !== configuredPass) {
+      return res.status(401).json({
+        success: false,
+        message: 'தவறான பயனர்பெயர் அல்லது கடவுச்சொல் (Invalid admin username or password).'
+      });
+    }
+
+    // Generate secure crypto session token
+    const token = 'adm_' + crypto.randomBytes(32).toString('hex');
+    adminSessions.set(token, {
+      username: configuredUser,
+      role: 'Constituency Administrator',
+      loginAt: Date.now()
+    });
+
+    console.log(`[Admin Portal] Administrator "${configuredUser}" logged in successfully at ${new Date().toISOString()}`);
+
+    return res.json({
+      success: true,
+      message: 'நிர்வாக உள்நுழைவு வெற்றிகரமானது (Admin login successful).',
+      token,
+      user: {
+        username: configuredUser,
+        role: 'தொகுதி அலுவலக நிர்வாகி'
+      }
+    });
+  } catch (error) {
+    console.error('[Admin Login Error]:', error.message);
+    return res.status(500).json({ success: false, message: 'நிர்வாக உள்நுழைவு தோல்வியடைந்தது.' });
+  }
+});
+
+/**
+ * Admin Logout Endpoint
+ */
+app.post('/api/admin/logout', (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : String(req.headers['x-admin-token'] || '').trim();
+  if (token) {
+    adminSessions.delete(token);
+  }
+  return res.json({ success: true, message: 'வெற்றிகரமாக வெளியேற்றப்பட்டது (Logged out successfully).' });
+});
+
+/**
+ * Admin Verify Session Endpoint
+ */
+app.get('/api/admin/verify', requireAdminAuth, (req, res) => {
+  return res.json({
+    success: true,
+    authenticated: true,
+    user: req.adminSession
+  });
+});
+
+/**
+ * Admin Petitions List Endpoint
+ * Fetches all petitions joined with petitioner info and calculates summary statistics
+ */
+app.get('/api/admin/petitions', requireAdminAuth, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const [rows] = await pool.query(`
+      SELECT 
+        p.id,
+        p.reference_no,
+        p.subject,
+        p.description,
+        p.category,
+        p.status,
+        p.admin_notes,
+        p.attachment_name,
+        p.attachment_type,
+        CASE WHEN p.attachment_data IS NOT NULL AND LENGTH(p.attachment_data) > 0 THEN TRUE ELSE FALSE END AS has_attachment,
+        p.created_at,
+        p.updated_at,
+        COALESCE(c.name, 'பொதுமக்கள்') AS petitioner_name,
+        COALESCE(p.phone, c.phone, '') AS petitioner_phone,
+        COALESCE(p.email, c.email, '') AS petitioner_email,
+        COALESCE(c.constituency, 'திருப்பரங்குன்றம்') AS constituency
+      FROM petitions p
+      LEFT JOIN petitioners c ON p.petitioner_id = c.id
+      ORDER BY p.id DESC
+    `);
+
+    const stats = {
+      total: rows.length,
+      received: 0,
+      underReview: 0,
+      inProgress: 0,
+      resolved: 0,
+      rejected: 0
+    };
+
+    rows.forEach((r) => {
+      const st = (r.status || '').toLowerCase().replace(/\s+/g, '');
+      if (st === 'received') stats.received++;
+      else if (st === 'underreview') stats.underReview++;
+      else if (st === 'inprogress') stats.inProgress++;
+      else if (st === 'resolved') stats.resolved++;
+      else if (st === 'rejected') stats.rejected++;
+      else stats.received++;
+    });
+
+    return res.json({
+      success: true,
+      stats,
+      petitions: rows.map((r) => ({
+        id: r.id,
+        referenceNo: r.reference_no,
+        petitionerName: r.petitioner_name,
+        phone: r.petitioner_phone,
+        email: r.petitioner_email,
+        constituency: r.constituency,
+        subject: r.subject,
+        description: r.description,
+        category: r.category,
+        status: r.status,
+        adminNotes: r.admin_notes,
+        hasAttachment: !!r.has_attachment,
+        attachmentName: r.attachment_name,
+        attachmentType: r.attachment_type,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      }))
+    });
+  } catch (error) {
+    console.error('[Admin Petitions Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message || 'மனுக்களை ஏற்றுவதில் பிழை ஏற்பட்டது.' });
+  }
+});
+
+/**
+ * Admin Single Petition Detail & History
+ */
+app.get('/api/admin/petitions/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const petitionId = parseInt(req.params.id, 10);
+    if (!petitionId) {
+      return res.status(400).json({ success: false, message: 'செல்லுபடியாகாத மனு எண்.' });
+    }
+
+    const pool = await getPool();
+    const [rows] = await pool.query(
+      `SELECT 
+        p.id,
+        p.reference_no,
+        p.subject,
+        p.description,
+        p.category,
+        p.status,
+        p.admin_notes,
+        p.attachment_name,
+        p.attachment_type,
+        CASE WHEN p.attachment_data IS NOT NULL AND LENGTH(p.attachment_data) > 0 THEN TRUE ELSE FALSE END AS has_attachment,
+        p.created_at,
+        p.updated_at,
+        COALESCE(c.name, 'பொதுமக்கள்') AS petitioner_name,
+        COALESCE(p.phone, c.phone, '') AS petitioner_phone,
+        COALESCE(p.email, c.email, '') AS petitioner_email,
+        COALESCE(c.address, '') AS petitioner_address,
+        COALESCE(c.constituency, 'திருப்பரங்குன்றம்') AS constituency
+      FROM petitions p
+      LEFT JOIN petitioners c ON p.petitioner_id = c.id
+      WHERE p.id = ?
+      LIMIT 1`,
+      [petitionId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'மனு காணப்படவில்லை.' });
+    }
+
+    const [history] = await pool.query(
+      `SELECT status, comments, updated_by, created_at FROM petition_status_history WHERE petition_id = ? ORDER BY id ASC`,
+      [petitionId]
+    );
+
+    return res.json({
+      success: true,
+      petition: rows[0],
+      history: history.map((h) => ({
+        status: h.status,
+        comments: h.comments,
+        updatedBy: h.updated_by,
+        date: h.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('[Admin Petition Detail Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * Admin Attachment Loader: Stream / return base64 attachment data on demand
+ */
+app.get('/api/admin/petitions/:id/attachment', requireAdminAuth, async (req, res) => {
+  try {
+    const petitionId = parseInt(req.params.id, 10);
+    const pool = await getPool();
+    const [rows] = await pool.query(
+      `SELECT reference_no, attachment_name, attachment_type, attachment_data FROM petitions WHERE id = ? LIMIT 1`,
+      [petitionId]
+    );
+
+    if (rows.length === 0 || !rows[0].attachment_data) {
+      return res.status(404).json({ success: false, message: 'இணைப்பு ஆவணம் எதுவும் இல்லை.' });
+    }
+
+    return res.json({
+      success: true,
+      referenceNo: rows[0].reference_no,
+      attachmentName: rows[0].attachment_name,
+      attachmentType: rows[0].attachment_type,
+      attachmentData: rows[0].attachment_data
+    });
+  } catch (error) {
+    console.error('[Admin Attachment Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * Admin Update Petition Status: Updates status, saves admin remarks, and appends to history log
+ */
+app.post('/api/admin/petitions/:id/update-status', requireAdminAuth, async (req, res) => {
+  try {
+    const petitionId = parseInt(req.params.id, 10);
+    const { status, adminNotes } = req.body || {};
+
+    const validStatuses = ['Received', 'Under Review', 'In Progress', 'Resolved', 'Rejected'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `செல்லுபடியாகாத நிலை. அனுமதிக்கப்பட்டவை: ${validStatuses.join(', ')}`
+      });
+    }
+
+    const cleanNotes = (adminNotes || '').trim();
+    const pool = await getPool();
+
+    const [petCheck] = await pool.query('SELECT id, reference_no, email, subject FROM petitions WHERE id = ? LIMIT 1', [petitionId]);
+    if (petCheck.length === 0) {
+      return res.status(404).json({ success: false, message: 'மனு காணப்படவில்லை.' });
+    }
+
+    const petition = petCheck[0];
+
+    // Update main petition status and admin notes
+    await pool.query(
+      `UPDATE petitions SET status = ?, admin_notes = ?, updated_at = NOW() WHERE id = ?`,
+      [status, cleanNotes || null, petitionId]
+    );
+
+    // Record into status timeline
+    const historyRemark = cleanNotes || `மனுவின் நிலை "${status}" என மாற்றப்பட்டது (Office of CTR Nirmal Kumar).`;
+    await pool.query(
+      `INSERT INTO petition_status_history (petition_id, status, comments, updated_by)
+       VALUES (?, ?, ?, 'சி.டி.ஆர். நிர்மல் குமார் அலுவலகம்')`,
+      [petitionId, status, historyRemark]
+    );
+
+    return res.json({
+      success: true,
+      message: `மனு ${petition.reference_no} நிலை "${status}" என வெற்றிகரமாக மாற்றப்பட்டது.`,
+      status,
+      adminNotes: cleanNotes
+    });
+  } catch (error) {
+    console.error('[Admin Update Status Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message || 'நிலை மாற்றுவதில் பிழை ஏற்பட்டது.' });
   }
 });
 

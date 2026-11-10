@@ -3,28 +3,43 @@ import ConstituencyMap from "./ConstituencyMap.jsx";
 import MlaOfficeSection from "./MlaOfficeSection.jsx";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowDown,
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
   BriefcaseBusiness,
+  Building2,
+  Calendar,
   Check,
+  CheckCircle2,
   ChevronDown,
+  Clock,
   Copy,
   Download,
+  ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
+  Filter,
   GraduationCap,
   Inbox,
   KeyRound,
   Landmark,
+  Lock,
   LogOut,
   Mail,
   Menu,
+  MessageSquare,
   Paperclip,
+  Phone,
+  RefreshCw,
   Scale,
+  Search,
   ShieldCheck,
   Sun,
   UploadCloud,
+  User,
   Video,
   X
 } from "lucide-react";
@@ -205,6 +220,41 @@ export default function PoliticalPage() {
   const [activePhoto, setActivePhoto] = useState(null);
   const [activeNews, setActiveNews] = useState(null);
   const [attachedFile, setAttachedFile] = useState(null);
+
+  // MLA Constituency Office Admin Portal State
+  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
+  const [adminToken, setAdminToken] = useState(() => {
+    try {
+      return sessionStorage.getItem("ctr_admin_token") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    try {
+      return !!sessionStorage.getItem("ctr_admin_token");
+    } catch {
+      return false;
+    }
+  });
+  const [adminUsernameInput, setAdminUsernameInput] = useState("admin");
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
+  const [adminSuccess, setAdminSuccess] = useState("");
+  const [adminPetitions, setAdminPetitions] = useState([]);
+  const [adminStats, setAdminStats] = useState({ total: 0, received: 0, underReview: 0, inProgress: 0, resolved: 0, rejected: 0 });
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminStatusFilter, setAdminStatusFilter] = useState("ALL");
+  const [adminSelectedPetition, setAdminSelectedPetition] = useState(null);
+  const [adminNewStatus, setAdminNewStatus] = useState("Received");
+  const [adminNotesInput, setAdminNotesInput] = useState("");
+  const [adminUpdatingStatus, setAdminUpdatingStatus] = useState(false);
+  const [adminAttachmentLoading, setAdminAttachmentLoading] = useState(false);
+  const [adminAttachmentData, setAdminAttachmentData] = useState(null);
+  const [adminHistoryLoading, setAdminHistoryLoading] = useState(false);
+  const [adminPetitionHistory, setAdminPetitionHistory] = useState([]);
   const tamil = language === "தமிழ்";
   const credentials = tamil ? "CTR. நிர்மல் குமார், B.E., LL.B., M.A." : "CTR. Nirmal Kumar, B.E., LL.B., M.A.";
 
@@ -495,11 +545,12 @@ export default function PoliticalPage() {
   }, [language]);
 
   useEffect(() => {
-    if (!portalIntent && !activePhoto && !activeNews) return undefined;
+    if (!portalIntent && !activePhoto && !activeNews && !isAdminPortalOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
-        if (activeNews) setActiveNews(null);
+        if (isAdminPortalOpen) setIsAdminPortalOpen(false);
+        else if (activeNews) setActiveNews(null);
         else if (activePhoto) setActivePhoto(null);
         else closePortal();
       }
@@ -510,7 +561,14 @@ export default function PoliticalPage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [portalIntent, activePhoto, activeNews]);
+  }, [portalIntent, activePhoto, activeNews, isAdminPortalOpen]);
+
+  // Auto-fetch petitions when admin opens portal and is logged in
+  useEffect(() => {
+    if (isAdminPortalOpen && isAdminLoggedIn && adminToken && adminPetitions.length === 0) {
+      fetchAdminPetitions(adminToken);
+    }
+  }, [isAdminPortalOpen, isAdminLoggedIn, adminToken]);
 
   const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || "").trim());
   const isValidIndianMobile = (p) => !p || /^[6-9]\d{9}$/.test((p || "").replace(/\D/g, ""));
@@ -574,6 +632,240 @@ export default function PoliticalPage() {
 
     return data;
   };
+
+  // ==========================================
+  // MLA CONSTITUENCY OFFICE ADMIN HANDLERS
+  // ==========================================
+  const handleAdminLogin = async (event) => {
+    if (event) event.preventDefault();
+    setAdminError("");
+    setAdminSuccess("");
+    setAdminLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: adminUsernameInput.trim(),
+          password: adminPasswordInput.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || (tamil ? "தவறான பயனர் பெயர் அல்லது கடவுச்சொல்." : "Invalid admin username or password."));
+      }
+
+      try {
+        sessionStorage.setItem("ctr_admin_token", data.token);
+      } catch {
+        // ignore
+      }
+      setAdminToken(data.token);
+      setIsAdminLoggedIn(true);
+      setAdminPasswordInput("");
+      setAdminSuccess(data.message || (tamil ? "நிர்வாக உள்நுழைவு வெற்றிகரமானது!" : "Admin logged in successfully!"));
+      fetchAdminPetitions(data.token);
+    } catch (err) {
+      setAdminError(err.message || (tamil ? "உள்நுழைவு தோல்வியடைந்தது." : "Admin login failed."));
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    try {
+      if (adminToken) {
+        await fetch("/api/admin/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      sessionStorage.removeItem("ctr_admin_token");
+    } catch {
+      // ignore
+    }
+    setAdminToken("");
+    setIsAdminLoggedIn(false);
+    setAdminPetitions([]);
+    setAdminSelectedPetition(null);
+    setAdminAttachmentData(null);
+    setAdminPetitionHistory([]);
+    setAdminSuccess("");
+    setAdminError("");
+  };
+
+  const fetchAdminPetitions = async (token = adminToken) => {
+    if (!token) return;
+    setAdminLoading(true);
+    setAdminError("");
+    try {
+      const res = await fetch("/api/admin/petitions", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (res.status === 401) {
+          handleAdminLogout();
+          throw new Error(tamil ? "நிர்வாக அமர்வு காலாவதியானது. மீண்டும் உள்நுழையவும்." : "Admin session expired. Please log in again.");
+        }
+        throw new Error(data.message || (tamil ? "மனுக்களை ஏற்றுவதில் பிழை." : "Failed to load petitions."));
+      }
+      setAdminPetitions(data.petitions || []);
+      if (data.stats) setAdminStats(data.stats);
+    } catch (err) {
+      setAdminError(err.message);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleSelectPetitionForDetail = async (petition) => {
+    setAdminSelectedPetition(petition);
+    setAdminNewStatus(petition.status || "Received");
+    setAdminNotesInput(petition.adminNotes || "");
+    setAdminAttachmentData(null);
+    setAdminPetitionHistory([]);
+    setAdminError("");
+    setAdminSuccess("");
+
+    // Fetch timeline history
+    try {
+      setAdminHistoryLoading(true);
+      const res = await fetch(`/api/admin/petitions/${petition.id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const data = await res.json();
+      if (data.success && data.history) {
+        setAdminPetitionHistory(data.history);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setAdminHistoryLoading(false);
+    }
+
+    // If petition has attachment, fetch heavy data
+    if (petition.hasAttachment) {
+      try {
+        setAdminAttachmentLoading(true);
+        const resAtt = await fetch(`/api/admin/petitions/${petition.id}/attachment`, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        const dataAtt = await resAtt.json();
+        if (dataAtt.success && dataAtt.attachmentData) {
+          setAdminAttachmentData({
+            name: dataAtt.attachmentName,
+            type: dataAtt.attachmentType,
+            data: dataAtt.attachmentData
+          });
+        }
+      } catch {
+        // ignore
+      } finally {
+        setAdminAttachmentLoading(false);
+      }
+    }
+  };
+
+  const handleAdminUpdateStatus = async (event) => {
+    if (event) event.preventDefault();
+    if (!adminSelectedPetition) return;
+
+    setAdminUpdatingStatus(true);
+    setAdminError("");
+    setAdminSuccess("");
+
+    try {
+      const res = await fetch(`/api/admin/petitions/${adminSelectedPetition.id}/update-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({
+          status: adminNewStatus,
+          adminNotes: adminNotesInput.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || (tamil ? "மனுவின் நிலையை மாற்ற முடியவில்லை." : "Failed to update petition status."));
+      }
+
+      setAdminSuccess(data.message || (tamil ? "மனுவின் நிலை வெற்றிகரமாக மாற்றப்பட்டது!" : "Petition status updated successfully!"));
+
+      // Update in local state
+      setAdminPetitions((prev) =>
+        prev.map((p) =>
+          p.id === adminSelectedPetition.id
+            ? { ...p, status: adminNewStatus, adminNotes: adminNotesInput.trim(), updatedAt: new Date().toISOString() }
+            : p
+        )
+      );
+
+      setAdminSelectedPetition((prev) =>
+        prev
+          ? { ...prev, status: adminNewStatus, adminNotes: adminNotesInput.trim(), updatedAt: new Date().toISOString() }
+          : null
+      );
+
+      // Refresh list to update counts
+      fetchAdminPetitions(adminToken);
+    } catch (err) {
+      setAdminError(err.message);
+    } finally {
+      setAdminUpdatingStatus(false);
+    }
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString(tamil ? "ta-IN" : "en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    } catch {
+      return String(dateStr);
+    }
+  };
+
+  const filteredAdminPetitions = adminPetitions.filter((p) => {
+    if (adminStatusFilter !== "ALL") {
+      const matchSt = (p.status || "").toLowerCase().replace(/\s+/g, "");
+      const targetSt = adminStatusFilter.toLowerCase().replace(/\s+/g, "");
+      if (matchSt !== targetSt) return false;
+    }
+    if (adminSearch.trim()) {
+      const q = adminSearch.toLowerCase().trim();
+      const ref = (p.referenceNo || "").toLowerCase();
+      const name = (p.petitionerName || "").toLowerCase();
+      const phone = (p.phone || "").toLowerCase();
+      const email = (p.email || "").toLowerCase();
+      const sub = (p.subject || "").toLowerCase();
+      const desc = (p.description || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      return (
+        ref.includes(q) ||
+        name.includes(q) ||
+        phone.includes(q) ||
+        email.includes(q) ||
+        sub.includes(q) ||
+        desc.includes(q) ||
+        cat.includes(q)
+      );
+    }
+    return true;
+  });
 
   // 1. Send OTP for Citizen Login
   const handleSendLoginOtp = async (event) => {
@@ -931,6 +1223,16 @@ export default function PoliticalPage() {
               {label}
             </button>
           ))}
+          <button
+            className="navigation-action navigation-admin-action"
+            onClick={() => {
+              setMenuOpen(false);
+              setIsAdminPortalOpen(true);
+            }}
+          >
+            <Lock size={14} style={{ marginRight: 6, verticalAlign: "-2px" }} />
+            {tamil ? "அலுவலக உள்நுழைவு" : "Office Admin"}
+          </button>
         </div>
         <div className="nav-actions">
           <button
@@ -941,6 +1243,17 @@ export default function PoliticalPage() {
             }}
           >
             {copy.login} <ArrowUpRight size={15} />
+          </button>
+          <button
+            className="header-admin-portal-btn"
+            onClick={() => {
+              setMenuOpen(false);
+              setIsAdminPortalOpen(true);
+            }}
+            title={tamil ? "தொகுதி அலுவலக நிர்வாக உள்நுழைவு" : "MLA Constituency Office Admin Login"}
+          >
+            <Lock size={13} style={{ marginRight: 5, verticalAlign: "-1px" }} />
+            {tamil ? "அலுவலகம்" : "Admin"}
           </button>
           <a
             className="header-cta"
@@ -1121,7 +1434,29 @@ export default function PoliticalPage() {
         </div>
       </div>
     </section>
-    <footer className="site-footer"><a className="footer-brand" href="#home"><img className="brand-symbol footer-symbol" src="/hero-thalaivar.png" alt="" /><span className="footer-identity"><strong>{tamil ? "நிர்மல் குமார்" : "NIRMAL KUMAR"}</strong><small>B.E. · LL.B. · M.A.</small><small>{tamil ? "திருப்பரங்குன்றம் சட்டமன்ற உறுப்பினர்" : "MLA · THIRUPARANKUNDRAM"}</small></span></a><span>{copy.footerRole}</span><a href="#home" aria-label={copy.backToTop} onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{copy.backToTop} <ChevronDown size={14} /></a></footer>
+    <footer className="site-footer">
+      <a className="footer-brand" href="#home">
+        <img className="brand-symbol footer-symbol" src="/hero-thalaivar.png" alt="" />
+        <span className="footer-identity">
+          <strong>{tamil ? "நிர்மல் குமார்" : "NIRMAL KUMAR"}</strong>
+          <small>B.E. · LL.B. · M.A.</small>
+          <small>{tamil ? "திருப்பரங்குன்றம் சட்டமன்ற உறுப்பினர்" : "MLA · THIRUPARANKUNDRAM"}</small>
+        </span>
+      </a>
+      <span>{copy.footerRole}</span>
+      <button
+        type="button"
+        className="footer-admin-link"
+        onClick={() => setIsAdminPortalOpen(true)}
+        title={tamil ? "தொகுதி அலுவலக நிர்வாக உள்நுழைவு" : "MLA Office Admin Login"}
+      >
+        <Lock size={12} style={{ marginRight: 4, verticalAlign: "-1px" }} />
+        {tamil ? "அலுவலக நிர்வாகம்" : "Office Admin"}
+      </button>
+      <a href="#home" aria-label={copy.backToTop} onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+        {copy.backToTop} <ChevronDown size={14} />
+      </a>
+    </footer>
 
     {portalIntent && <div className="portal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closePortal(); }}>
       <section className="portal-dialog" role="dialog" aria-modal="true" aria-labelledby="portal-title">
@@ -1155,6 +1490,20 @@ export default function PoliticalPage() {
             {loading ? <><span className="portal-spinner" /> {copy.sendingOtp}</> : <><Mail size={16} /> {copy.sendLoginOtp}</>}
           </button>
           <small className="portal-preview-note">{copy.gmailSmtpNote}</small>
+
+          <div className="portal-admin-switch-row">
+            <button
+              type="button"
+              className="portal-admin-switch-btn"
+              onClick={() => {
+                closePortal();
+                setIsAdminPortalOpen(true);
+              }}
+            >
+              <Lock size={12} style={{ marginRight: 4, verticalAlign: "-1px" }} />
+              {tamil ? "தொகுதி அலுவலக நிர்வாக உள்நுழைவு (Admin Login) →" : "MLA Office Admin Login →"}
+            </button>
+          </div>
         </form>}
 
         {/* 0B. LOGIN OTP VERIFICATION */}
@@ -1690,6 +2039,624 @@ export default function PoliticalPage() {
         </div>}
       </section>
     </div>}
+
+    {/* MLA CONSTITUENCY OFFICE ADMIN PORTAL & PETITIONS DASHBOARD */}
+    {isAdminPortalOpen && (
+      <div
+        className="admin-portal-backdrop"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) setIsAdminPortalOpen(false);
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-portal-title"
+      >
+        <div className={`admin-portal-wrapper ${isAdminLoggedIn ? "is-dashboard" : "is-login"}`}>
+          {/* Top Bar for Admin */}
+          <div className="admin-portal-topbar">
+            <div className="admin-topbar-left">
+              <img src="/hero-thalaivar.png" alt="" className="admin-topbar-emblem" />
+              <div>
+                <h3 id="admin-portal-title" className="admin-topbar-title">
+                  {tamil ? "சி.டி.ஆர். நிர்மல் குமார் தொகுதி அலுவலகம்" : "Office of CTR Nirmal Kumar"}
+                </h3>
+                <span className="admin-topbar-subtitle">
+                  {isAdminLoggedIn
+                    ? (tamil ? "மனுக்கள் மேலாண்மை மற்றும் கண்காணிப்புப் பலகை" : "Petitions Management & Control Dashboard")
+                    : (tamil ? "அலுவலக நிர்வாக உள்நுழைவு" : "MLA Office Admin Portal")}
+                </span>
+              </div>
+            </div>
+
+            <div className="admin-topbar-right">
+              {isAdminLoggedIn && (
+                <>
+                  <button
+                    type="button"
+                    className="admin-btn-action admin-btn-refresh"
+                    onClick={() => fetchAdminPetitions()}
+                    disabled={adminLoading}
+                    title={tamil ? "புதுப்பிக்கவும்" : "Refresh Petitions"}
+                  >
+                    <RefreshCw size={14} className={adminLoading ? "spin-icon" : ""} />
+                    <span>{tamil ? "புதுப்பி" : "Refresh"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn-action admin-btn-logout"
+                    onClick={handleAdminLogout}
+                    title={tamil ? "வெளியேறு" : "Logout"}
+                  >
+                    <LogOut size={14} />
+                    <span>{tamil ? "வெளியேறு" : "Logout"}</span>
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="admin-topbar-close"
+                onClick={() => setIsAdminPortalOpen(false)}
+                aria-label={tamil ? "மூடவும்" : "Close"}
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* ADMIN CONTENT */}
+          {!isAdminLoggedIn ? (
+            /* ADMIN LOGIN CARD */
+            <div className="admin-login-body">
+              <div className="admin-login-card">
+                <div className="admin-login-icon-badge">
+                  <Lock size={30} />
+                </div>
+                <h2>{tamil ? "தொகுதி அலுவலக உள்நுழைவு" : "MLA Office Login"}</h2>
+                <p>
+                  {tamil
+                    ? "பொதுமக்கள் சமர்ப்பித்த அனைத்து மனுக்களையும் பார்வையிட, ஆவணங்களைச் சரிபார்க்க மற்றும் மனுவின் நிலையை மாற்ற உள்நுழையவும்."
+                    : "Sign in to review citizen petitions, view attachments, and update grievance status."}
+                </p>
+
+                {adminError && (
+                  <div className="portal-alert-error" role="alert">
+                    <AlertCircle size={15} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+                    {adminError}
+                  </div>
+                )}
+                {adminSuccess && (
+                  <div className="portal-alert-success" role="status">
+                    <Check size={15} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+                    {adminSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleAdminLogin} className="admin-login-form">
+                  <div className="admin-form-group">
+                    <label htmlFor="admin-username-field">
+                      {tamil ? "பயனர்பெயர் (Username)" : "Admin Username"}
+                    </label>
+                    <div className="admin-input-group">
+                      <User size={16} className="admin-input-lead-icon" />
+                      <input
+                        id="admin-username-field"
+                        type="text"
+                        autoComplete="username"
+                        required
+                        placeholder="admin"
+                        value={adminUsernameInput}
+                        onChange={(e) => setAdminUsernameInput(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label htmlFor="admin-password-field">
+                      {tamil ? "கடவுச்சொல் (Password)" : "Password"}
+                    </label>
+                    <div className="admin-input-group">
+                      <Lock size={16} className="admin-input-lead-icon" />
+                      <input
+                        id="admin-password-field"
+                        type={showAdminPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        required
+                        placeholder="••••"
+                        value={adminPasswordInput}
+                        onChange={(e) => setAdminPasswordInput(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="admin-pw-eye-btn"
+                        onClick={() => setShowAdminPassword(!showAdminPassword)}
+                        aria-label="Toggle password visibility"
+                      >
+                        {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="admin-credentials-badge">
+                    <span>
+                      {tamil
+                        ? "அலுவலகச் சான்றுகள்: admin / 1234"
+                        : "Credentials: admin / 1234"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="admin-submit-btn"
+                    disabled={adminLoading || !adminUsernameInput.trim() || !adminPasswordInput.trim()}
+                  >
+                    {adminLoading ? (
+                      <>
+                        <span className="portal-spinner" />
+                        <span>{tamil ? "சரிபார்க்கிறது..." : "Signing in..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound size={16} />
+                        <span>{tamil ? "உள்நுழைக" : "Sign In to Office Dashboard"}</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            /* ADMIN DASHBOARD */
+            <div className="admin-dashboard-body">
+              {/* Stats Ribbon */}
+              <div className="admin-stats-ribbon">
+                <div
+                  className={`admin-stat-card ${adminStatusFilter === "ALL" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("ALL")}
+                >
+                  <div className="admin-stat-num">{adminStats.total}</div>
+                  <div className="admin-stat-label">{tamil ? "மொத்த மனுக்கள்" : "Total Petitions"}</div>
+                </div>
+
+                <div
+                  className={`admin-stat-card stat-received ${adminStatusFilter === "Received" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("Received")}
+                >
+                  <div className="admin-stat-num">{adminStats.received}</div>
+                  <div className="admin-stat-label">{tamil ? "புதியவை (Received)" : "Received"}</div>
+                </div>
+
+                <div
+                  className={`admin-stat-card stat-under-review ${adminStatusFilter === "Under Review" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("Under Review")}
+                >
+                  <div className="admin-stat-num">{adminStats.underReview}</div>
+                  <div className="admin-stat-label">{tamil ? "பரிசீலனை (Under Review)" : "Under Review"}</div>
+                </div>
+
+                <div
+                  className={`admin-stat-card stat-in-progress ${adminStatusFilter === "In Progress" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("In Progress")}
+                >
+                  <div className="admin-stat-num">{adminStats.inProgress}</div>
+                  <div className="admin-stat-label">{tamil ? "நடவடிக்கை (In Progress)" : "In Progress"}</div>
+                </div>
+
+                <div
+                  className={`admin-stat-card stat-resolved ${adminStatusFilter === "Resolved" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("Resolved")}
+                >
+                  <div className="admin-stat-num">{adminStats.resolved}</div>
+                  <div className="admin-stat-label">{tamil ? "தீர்வு (Resolved)" : "Resolved"}</div>
+                </div>
+
+                <div
+                  className={`admin-stat-card stat-rejected ${adminStatusFilter === "Rejected" ? "is-active" : ""}`}
+                  onClick={() => setAdminStatusFilter("Rejected")}
+                >
+                  <div className="admin-stat-num">{adminStats.rejected}</div>
+                  <div className="admin-stat-label">{tamil ? "நிராகரிப்பு (Rejected)" : "Rejected"}</div>
+                </div>
+              </div>
+
+              {/* Toolbar */}
+              <div className="admin-toolbar">
+                <div className="admin-search-wrapper">
+                  <Search size={16} className="admin-search-icon" />
+                  <input
+                    type="text"
+                    placeholder={
+                      tamil
+                        ? "மனு எண் (CTR-...), பெயர், கைபேசி, மின்னஞ்சல் மூலம் தேடுக..."
+                        : "Search by Ref No (CTR-...), Name, Phone, Email, Subject..."
+                    }
+                    value={adminSearch}
+                    onChange={(e) => setAdminSearch(e.target.value)}
+                    className="admin-search-input"
+                  />
+                  {adminSearch && (
+                    <button
+                      type="button"
+                      className="admin-search-clear"
+                      onClick={() => setAdminSearch("")}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Pills */}
+                <div className="admin-filter-pills">
+                  <span className="admin-filter-pill-label">
+                    <Filter size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                    {tamil ? "வடிகட்டு:" : "Filter:"}
+                  </span>
+                  {["ALL", "Received", "Under Review", "In Progress", "Resolved", "Rejected"].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      className={`admin-filter-pill ${adminStatusFilter === st ? "is-active" : ""}`}
+                      onClick={() => setAdminStatusFilter(st)}
+                    >
+                      {st === "ALL"
+                        ? (tamil ? "அனைத்தும்" : "All")
+                        : st === "Received"
+                        ? (tamil ? "புதியவை" : "Received")
+                        : st === "Under Review"
+                        ? (tamil ? "பரிசீலனையில்" : "Under Review")
+                        : st === "In Progress"
+                        ? (tamil ? "நடவடிக்கையில்" : "In Progress")
+                        : st === "Resolved"
+                        ? (tamil ? "தீர்வு" : "Resolved")
+                        : (tamil ? "நிராகரிக்கப்பட்டது" : "Rejected")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main Two-Column Work Area */}
+              <div className="admin-workspace-grid">
+                {/* Column 1: Petitions Feed */}
+                <div className="admin-petitions-feed">
+                  <div className="admin-feed-header">
+                    <h4>
+                      <Inbox size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} />
+                      {tamil ? "மனுக்கள் பட்டியல்" : "Submitted Petitions Feed"}
+                    </h4>
+                    <span className="admin-feed-count">
+                      {filteredAdminPetitions.length} / {adminPetitions.length}
+                    </span>
+                  </div>
+
+                  {adminLoading && adminPetitions.length === 0 ? (
+                    <div className="admin-feed-loading">
+                      <span className="portal-spinner" />
+                      <p>{tamil ? "மனுக்கள் ஏற்றப்படுகின்றன..." : "Loading petitions from database..."}</p>
+                    </div>
+                  ) : filteredAdminPetitions.length === 0 ? (
+                    <div className="admin-feed-empty">
+                      <FileText size={36} opacity={0.4} />
+                      <p>{tamil ? "மனுக்கள் எதுவும் பொருந்தவில்லை." : "No petitions match the filter criteria."}</p>
+                    </div>
+                  ) : (
+                    <div className="admin-feed-list">
+                      {filteredAdminPetitions.map((p) => {
+                        const isSelected = adminSelectedPetition?.id === p.id;
+                        const statusClass = (p.status || "Received").toLowerCase().replace(/\s+/g, "");
+                        return (
+                          <div
+                            key={p.id}
+                            className={`admin-petition-card ${isSelected ? "is-selected" : ""}`}
+                            onClick={() => handleSelectPetitionForDetail(p)}
+                          >
+                            <div className="admin-card-top-row">
+                              <span className="admin-card-ref">{p.referenceNo}</span>
+                              <span className={`portal-status-badge status-${statusClass}`}>
+                                {p.status}
+                              </span>
+                            </div>
+
+                            <div className="admin-card-petitioner-row">
+                              <span className="admin-card-name">
+                                <User size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                                {p.petitionerName}
+                              </span>
+                              <span className="admin-card-date">
+                                <Clock size={12} style={{ marginRight: 4, verticalAlign: "-1px" }} />
+                                {formatDateTime(p.createdAt)}
+                              </span>
+                            </div>
+
+                            <div className="admin-card-subject-row">
+                              <strong>{p.subject}</strong>
+                            </div>
+
+                            <div className="admin-card-meta-row">
+                              <span className="admin-card-contact">
+                                {p.phone && <span>📞 {p.phone}</span>}
+                                {p.email && <span>✉️ {p.email}</span>}
+                              </span>
+                              {p.hasAttachment && (
+                                <span className="admin-card-attachment-tag" title={p.attachmentName || "Attachment"}>
+                                  <Paperclip size={12} style={{ marginRight: 2 }} />
+                                  {tamil ? "ஆவணம்" : "Doc"}
+                                </span>
+                              )}
+                            </div>
+
+                            {p.adminNotes && (
+                              <div className="admin-card-note-preview">
+                                💬 <em>{p.adminNotes}</em>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Column 2: Detailed Petition Inspector & Action Management */}
+                <div className="admin-petition-inspector">
+                  {!adminSelectedPetition ? (
+                    <div className="admin-inspector-placeholder">
+                      <div className="placeholder-icon">📋</div>
+                      <h3>{tamil ? "மனுவைத் தேர்ந்தெடுக்கவும்" : "Select a Petition to Inspect"}</h3>
+                      <p>
+                        {tamil
+                          ? "இடது பக்கப் பட்டியலில் இருந்து ஏதேனும் ஒரு மனுவைத் தேர்ந்தெடுத்து அதன் முழு விவரங்கள், பதிவேற்றிய ஆவணங்கள் மற்றும் அலுவலக நடவடிக்கையை நிர்வகிக்கலாம்."
+                          : "Choose any petition from the left list to review complete details, examine supporting documents, and update constituency status."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="admin-inspector-content">
+                      {/* Inspector Header */}
+                      <div className="admin-inspector-header">
+                        <div>
+                          <span className="inspector-ref-badge">{adminSelectedPetition.referenceNo}</span>
+                          <span className="inspector-date">{formatDateTime(adminSelectedPetition.createdAt)}</span>
+                        </div>
+                        <span className={`portal-status-badge status-${(adminSelectedPetition.status || 'received').toLowerCase().replace(/\s+/g, '')}`}>
+                          {adminSelectedPetition.status}
+                        </span>
+                      </div>
+
+                      {/* Petitioner Details Box */}
+                      <div className="inspector-section-card">
+                        <h5>{tamil ? "மனுதாரர் விவரங்கள்" : "Petitioner Information"}</h5>
+                        <div className="inspector-petitioner-grid">
+                          <div className="petitioner-field">
+                            <span className="field-lbl">{tamil ? "பெயர்:" : "Name:"}</span>
+                            <span className="field-val"><strong>{adminSelectedPetition.petitionerName}</strong></span>
+                          </div>
+                          <div className="petitioner-field">
+                            <span className="field-lbl">{tamil ? "தொகுதி:" : "Constituency:"}</span>
+                            <span className="field-val">{adminSelectedPetition.constituency}</span>
+                          </div>
+                          <div className="petitioner-field">
+                            <span className="field-lbl">{tamil ? "கைபேசி எண்:" : "Mobile:"}</span>
+                            <span className="field-val">
+                              {adminSelectedPetition.phone ? (
+                                <a href={`tel:${adminSelectedPetition.phone}`} className="admin-tel-link">
+                                  📞 {adminSelectedPetition.phone}
+                                </a>
+                              ) : "—"}
+                            </span>
+                          </div>
+                          <div className="petitioner-field">
+                            <span className="field-lbl">{tamil ? "மின்னஞ்சல்:" : "Email:"}</span>
+                            <span className="field-val">
+                              {adminSelectedPetition.email ? (
+                                <a href={`mailto:${adminSelectedPetition.email}`} className="admin-mail-link">
+                                  ✉️ {adminSelectedPetition.email}
+                                </a>
+                              ) : "—"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grievance Details Box */}
+                      <div className="inspector-section-card">
+                        <h5>{tamil ? "மனுவின் பொருள் & முழு விவரம்" : "Grievance Subject & Full Description"}</h5>
+                        <div className="inspector-subject">
+                          <strong>{adminSelectedPetition.subject}</strong>
+                          {adminSelectedPetition.category && (
+                            <span className="inspector-category-badge">{adminSelectedPetition.category}</span>
+                          )}
+                        </div>
+                        <div className="inspector-description-box">
+                          {adminSelectedPetition.description}
+                        </div>
+                      </div>
+
+                      {/* Supporting Document / Attachment Box */}
+                      <div className="inspector-section-card">
+                        <h5>
+                          <Paperclip size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
+                          {tamil ? "இணைக்கப்பட்ட ஆவணங்கள் / புகைப்படங்கள்" : "Supporting Documents & Attachments"}
+                        </h5>
+
+                        {adminAttachmentLoading ? (
+                          <div className="attachment-loading">
+                            <span className="portal-spinner" />
+                            <span>{tamil ? "இணைப்பு ஆவணம் பதிவிறக்கப்படுகிறது..." : "Loading attachment..."}</span>
+                          </div>
+                        ) : adminAttachmentData ? (
+                          <div className="admin-attachment-preview">
+                            {adminAttachmentData.type?.startsWith("image/") || /\.(jpg|jpeg|png|webp)$/i.test(adminAttachmentData.name || "") ? (
+                              <div className="admin-att-image-box">
+                                <img
+                                  src={adminAttachmentData.data}
+                                  alt={adminAttachmentData.name}
+                                  className="admin-att-img"
+                                  onClick={() => setActivePhoto({ src: adminAttachmentData.data, index: 1 })}
+                                  title={tamil ? "பெரிதாக்க கிளிக் செய்க" : "Click to view full size"}
+                                />
+                                <div className="admin-att-actions">
+                                  <span>{adminAttachmentData.name}</span>
+                                  <a
+                                    href={adminAttachmentData.data}
+                                    download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Attachment.jpg`}
+                                    className="portal-download-btn"
+                                  >
+                                    <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                                    {tamil ? "பதிவிறக்கம்" : "Download"}
+                                  </a>
+                                </div>
+                              </div>
+                            ) : isVideoAttachment(adminAttachmentData.name, adminAttachmentData.type) ? (
+                              <div className="admin-att-video-box">
+                                <video controls src={adminAttachmentData.data} className="admin-att-video" />
+                                <div className="admin-att-actions">
+                                  <span>{adminAttachmentData.name}</span>
+                                  <a
+                                    href={adminAttachmentData.data}
+                                    download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Video.mp4`}
+                                    className="portal-download-btn"
+                                  >
+                                    <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                                    {tamil ? "வீடியோவை பதிவிறக்கம்" : "Download Video"}
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="admin-att-file-box">
+                                <FileText size={32} className="admin-file-icon" />
+                                <div className="admin-file-info">
+                                  <strong>{adminAttachmentData.name}</strong>
+                                  <small>{adminAttachmentData.type || "Document"}</small>
+                                </div>
+                                <a
+                                  href={adminAttachmentData.data}
+                                  download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Doc.pdf`}
+                                  className="portal-download-btn"
+                                >
+                                  <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                                  {tamil ? "பதிவிறக்கம்" : "Download"}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        ) : adminSelectedPetition.hasAttachment ? (
+                          <div className="admin-attachment-hint">
+                            <span>{adminSelectedPetition.attachmentName || (tamil ? "ஆவணம் இணைக்கப்பட்டுள்ளது" : "Attachment available")}</span>
+                          </div>
+                        ) : (
+                          <div className="inspector-no-attachment">
+                            {tamil ? "இணைப்பு ஆவணங்கள் எதுவும் சமர்ப்பிக்கப்படவில்லை." : "No documents or photos were attached."}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status Update & Official Notes Form */}
+                      <div className="inspector-section-card inspector-action-box">
+                        <h5>
+                          <Scale size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
+                          {tamil ? "அலுவலக நடவடிக்கை & நிலை புதுப்பிப்பு" : "Office Action & Status Update"}
+                        </h5>
+
+                        {adminError && (
+                          <div className="portal-alert-error" role="alert">
+                            <AlertCircle size={14} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+                            {adminError}
+                          </div>
+                        )}
+                        {adminSuccess && (
+                          <div className="portal-alert-success" role="status">
+                            <Check size={14} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+                            {adminSuccess}
+                          </div>
+                        )}
+
+                        <form onSubmit={handleAdminUpdateStatus} className="inspector-status-form">
+                          <label htmlFor="inspector-status-select">
+                            {tamil ? "மனுவின் புதிய நிலை:" : "Update Status to:"}
+                          </label>
+                          <select
+                            id="inspector-status-select"
+                            value={adminNewStatus}
+                            onChange={(e) => setAdminNewStatus(e.target.value)}
+                            className="inspector-status-dropdown"
+                          >
+                            <option value="Received">{tamil ? "Received — பெறப்பட்டது" : "Received"}</option>
+                            <option value="Under Review">{tamil ? "Under Review — பரிசீலனையில் உள்ளது" : "Under Review"}</option>
+                            <option value="In Progress">{tamil ? "In Progress — நடவடிக்கை எடுக்கப்படுகிறது" : "In Progress"}</option>
+                            <option value="Resolved">{tamil ? "Resolved — தீர்வு காணப்பட்டது" : "Resolved"}</option>
+                            <option value="Rejected">{tamil ? "Rejected — நிராகரிக்கப்பட்டது" : "Rejected"}</option>
+                          </select>
+
+                          <label htmlFor="inspector-notes-area">
+                            {tamil ? "அலுவலகக் குறிப்பு / நடவடிக்கை விளக்கம் (மனுதாரர் பார்வைக்கு):" : "Official Remarks / Public Notes:"}
+                          </label>
+                          <textarea
+                            id="inspector-notes-area"
+                            rows="3"
+                            value={adminNotesInput}
+                            onChange={(e) => setAdminNotesInput(e.target.value)}
+                            placeholder={
+                              tamil
+                                ? "எ.கா: மனு பரிசீலிக்கப்பட்டு திருப்பரங்குன்றம் நெடுஞ்சாலைத் துறை உதவிப் பொறியாளருக்கு அனுப்பப்பட்டுள்ளது."
+                                : "e.g., Petition inspected and forwarded to Thiruparankundram Highways Division for prompt road restoration."
+                            }
+                            className="inspector-notes-textarea"
+                          />
+
+                          <button
+                            type="submit"
+                            className="inspector-update-btn"
+                            disabled={adminUpdatingStatus}
+                          >
+                            {adminUpdatingStatus ? (
+                              <>
+                                <span className="portal-spinner" />
+                                <span>{tamil ? "புதுப்பிக்கிறது..." : "Updating status..."}</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={16} />
+                                <span>{tamil ? "நிலையைப் புதுப்பித்து சேமிக்கவும்" : "Save & Publish Status Update"}</span>
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* Status History Timeline */}
+                      {adminPetitionHistory && adminPetitionHistory.length > 0 && (
+                        <div className="inspector-section-card">
+                          <h5>
+                            <Clock size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
+                            {tamil ? "நடவடிக்கை வரலாறு" : "Timeline History"}
+                          </h5>
+                          <div className="inspector-timeline">
+                            {adminPetitionHistory.map((item, idx) => (
+                              <div key={idx} className="inspector-timeline-item">
+                                <div className="timeline-marker" />
+                                <div className="timeline-content">
+                                  <div className="timeline-header">
+                                    <span className={`portal-status-badge status-${(item.status || 'received').toLowerCase().replace(/\s+/g, '')}`}>
+                                      {item.status}
+                                    </span>
+                                    <span className="timeline-date">{formatDateTime(item.date)}</span>
+                                  </div>
+                                  <p className="timeline-comment">{item.comments}</p>
+                                  <span className="timeline-by">{item.updatedBy}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
 
     {activePhoto && (
       <div className="photo-lightbox-backdrop" onClick={() => setActivePhoto(null)} role="dialog" aria-modal="true">
