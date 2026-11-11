@@ -45,6 +45,18 @@ import {
 } from "lucide-react";
 import "./political.css";
 
+const PETITION_DEPARTMENTS = [
+  { key: "General Administration", ta: "பொது நிர்வாகம் (General Administration)", en: "General Administration" },
+  { key: "Revenue & Land Administration", ta: "வருவாய் & நில நிர்வாகம் (Revenue & Land)", en: "Revenue & Land Administration" },
+  { key: "Highways & Public Works (PWD)", ta: "நெடுஞ்சாலை & பொதுப்பணி (Highways & PWD)", en: "Highways & Public Works (PWD)" },
+  { key: "TANGEDCO / Electricity Board", ta: "மின்வாரியம் (TANGEDCO / Electricity Board)", en: "TANGEDCO / Electricity Board" },
+  { key: "Municipal & Rural Sanitation", ta: "நகராட்சி & ஊரக சுகாதாரம் (Sanitation & Water)", en: "Municipal & Rural Sanitation" },
+  { key: "Police & Law Enforcement", ta: "காவல்துறை & சட்டம் ஒழுங்கு (Police & Law)", en: "Police & Law Enforcement" },
+  { key: "Social Welfare & Women Rights", ta: "சமூக நலம் & மகளிர் உரிமை (Social Welfare)", en: "Social Welfare & Women Rights" },
+  { key: "Education & Youth Welfare", ta: "கல்வி & இளைஞர் நலம் (Education & Youth)", en: "Education & Youth Welfare" },
+  { key: "Others", ta: "மற்றவை (Others)", en: "Others" }
+];
+
 const media = "https://ctrnirmalkumar.com/wp-content/uploads/2026/";
 const stories = [
   {
@@ -206,6 +218,8 @@ export default function PoliticalPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [issue, setIssue] = useState("");
+  const [department, setDepartment] = useState("General Administration");
+  const [otherDepartmentText, setOtherDepartmentText] = useState("");
   const [details, setDetails] = useState("");
   const [constituency, setConstituency] = useState("Thiruparankundram");
   const [petitionRef, setPetitionRef] = useState("");
@@ -273,7 +287,7 @@ export default function PoliticalPage() {
     otpTitle: "சரிபார்ப்புக் குறியீட்டை உள்ளிடவும்", otpText: "இந்த மின்னஞ்சல் முகவரிக்கு அனுப்பிய 6 இலக்கக் குறியீட்டை உள்ளிடவும்: ", otpLabel: "ஒருமுறை குறியீடு (OTP)",
     verifyContinue: "உறுதிப்படுத்தி தொடரவும்",
     petitionTitle: "மனு அளிக்க", petitionText: "உங்கள் கோரிக்கையை தொகுதி அலுவலகத்திற்கு நேரடியாகச் சமர்ப்பிக்கவும்.",
-    petitionerName: "மனுதாரர் பெயர்", namePlaceholder: "உங்கள் முழுப் பெயர்",
+    petitionerName: "மனுதாரர் பெயர்", namePlaceholder: "உங்கள் முழுப் பெயர்", departmentLabel: "தொடர்புடைய அரசுத் துறை",
     subject: "தலைப்பு", subjectPlaceholder: "எந்த உதவி தேவை?", details: "விவரங்கள்", detailsPlaceholder: "பிரச்சினையையும் இருப்பிடத்தையும் விரிவாக விவரிக்கவும்",
     submitPetition: "மனுவைச் சமர்ப்பிக்கவும்",
     trackTitle: "மனுவின் நிலையை அறியவும்", trackText: "சமர்ப்பித்த மனுவின் குறிப்பு எண்ணையும் பதிவுசெய்த மின்னஞ்சலையும் உள்ளிடவும்.",
@@ -322,7 +336,7 @@ export default function PoliticalPage() {
     otpTitle: "Enter verification code", otpText: "Enter the 6-digit code sent to ", otpLabel: "One-time code (OTP)",
     verifyContinue: "Verify and continue",
     petitionTitle: "Submit a petition", petitionText: "Share an issue directly with the constituency office.",
-    petitionerName: "Petitioner name", namePlaceholder: "Enter your full name",
+    petitionerName: "Petitioner name", namePlaceholder: "Enter your full name", departmentLabel: "Relevant Government Department",
     subject: "Subject", subjectPlaceholder: "What do you need help with?", details: "Details", detailsPlaceholder: "Describe the issue and location in detail",
     submitPetition: "Submit petition",
     trackTitle: "Track a petition", trackText: "Enter your petition reference number and registered email address.",
@@ -431,12 +445,7 @@ export default function PoliticalPage() {
     } else if (intent === "track") {
       setPortalStage("track");
     } else {
-      if (adminToken && isAdminLoggedIn) {
-        setPortalStage("admin-dashboard");
-        fetchAdminPetitions(adminToken);
-      } else {
-        setPortalStage(verificationToken ? "dashboard" : "login");
-      }
+      setPortalStage(verificationToken ? "dashboard" : "login");
     }
     setOtp("");
     setPetitionResult(null);
@@ -1062,12 +1071,18 @@ export default function PoliticalPage() {
       setVerificationToken(token);
 
       // 2. Submit petition with security verification token
+      const finalDepartment = department === "Others" && otherDepartmentText.trim()
+        ? `Others (${otherDepartmentText.trim()})`
+        : department;
+
       const submitData = await safeApiRequest("/api/petitions/submit", {
         verificationToken: token,
         email: email.trim(),
         phone: phone.trim() || undefined,
         name: petitionerName,
         subject: issue,
+        department: finalDepartment,
+        category: finalDepartment,
         details,
         constituency,
         attachment: attachedFile ? {
@@ -1439,17 +1454,13 @@ export default function PoliticalPage() {
     </footer>
 
     {portalIntent && <div className="portal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closePortal(); }}>
-      <section className={`portal-dialog ${portalStage === 'admin-dashboard' ? 'portal-dialog-admin' : ''}`} role="dialog" aria-modal="true" aria-labelledby="portal-title">
+      <section className="portal-dialog" role="dialog" aria-modal="true" aria-labelledby="portal-title">
         <button className="portal-close" onClick={closePortal} aria-label={copy.closePortal}><X size={19} /></button>
-        {portalStage !== "admin-dashboard" && (
-          <>
-            <div className="portal-header-brand">
-              <img className="portal-mark-image" src="/hero-thalaivar.png" alt="" />
-              <span className="portal-party-name">தமிழக வெற்றிக் கழகம்</span>
-            </div>
-            <span className="portal-kicker">{copy.portalKicker}</span>
-          </>
-        )}
+        <div className="portal-header-brand">
+          <img className="portal-mark-image" src="/hero-thalaivar.png" alt="" />
+          <span className="portal-party-name">தமிழக வெற்றிக் கழகம்</span>
+        </div>
+        <span className="portal-kicker">{copy.portalKicker}</span>
 
         {errorMessage && <div className="portal-alert-error" role="alert"><AlertCircle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: '-2px' }} />{errorMessage}</div>}
         {successMessage && <div className="portal-alert-success" role="status"><Check size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: '-2px' }} />{successMessage}</div>}
@@ -1474,75 +1485,6 @@ export default function PoliticalPage() {
             {loading ? <><span className="portal-spinner" /> {copy.sendingOtp}</> : <><Mail size={16} /> {copy.sendLoginOtp}</>}
           </button>
           <small className="portal-preview-note">{copy.gmailSmtpNote}</small>
-
-          <div className="portal-admin-link-row">
-            <button
-              type="button"
-              className="portal-admin-text-link"
-              onClick={() => {
-                setPortalStage("admin-login");
-                setErrorMessage("");
-                setSuccessMessage("");
-                setAdminError("");
-                setAdminSuccess("");
-              }}
-            >
-              Admin Login
-            </button>
-          </div>
-        </form>}
-
-        {/* 0C. ADMIN LOGIN (SWITCHED INSIDE SAME POPUP, NO OTP) */}
-        {portalStage === "admin-login" && <form className="portal-form" onSubmit={handleAdminLogin}>
-          <h2 id="portal-title">{tamil ? "நிர்வாக உள்நுழைவு" : "Admin Login"}</h2>
-          <p>{tamil ? "மனுக்களை நிர்வகிக்க பயனர்பெயர் மற்றும் கடவுச்சொல்லை உள்ளிடவும்." : "Enter your username and password to view and manage citizen petitions."}</p>
-
-          <label htmlFor="portal-admin-user">{tamil ? "பயனர் பெயர்" : "Username"} *</label>
-          <input
-            id="portal-admin-user"
-            type="text"
-            autoComplete="username"
-            value={adminUsernameInput}
-            onChange={(e) => setAdminUsernameInput(e.target.value)}
-            required
-            placeholder="admin"
-            autoFocus
-          />
-
-          <label htmlFor="portal-admin-pass">{tamil ? "கடவுச்சொல்" : "Password"} *</label>
-          <input
-            id="portal-admin-pass"
-            type="password"
-            autoComplete="current-password"
-            value={adminPasswordInput}
-            onChange={(e) => setAdminPasswordInput(e.target.value)}
-            required
-            placeholder="••••"
-          />
-
-          <button className="portal-submit" type="submit" disabled={adminLoading || !adminUsernameInput.trim() || !adminPasswordInput.trim()}>
-            {adminLoading ? (
-              <><span className="portal-spinner" /> {tamil ? "சரிபார்க்கிறது..." : "Signing in..."}</>
-            ) : (
-              <><KeyRound size={16} /> {tamil ? "உள்நுழைக" : "Login"}</>
-            )}
-          </button>
-
-          <div className="portal-resend-row" style={{ marginTop: 14, justifyContent: "center" }}>
-            <button
-              type="button"
-              className="portal-text-button"
-              onClick={() => {
-                setPortalStage("login");
-                setErrorMessage("");
-                setSuccessMessage("");
-                setAdminError("");
-                setAdminSuccess("");
-              }}
-            >
-              ← {tamil ? "குடிமக்கள் உள்நுழைவுக்குத் திரும்பவும்" : "Back to Citizen Login"}
-            </button>
-          </div>
         </form>}
 
         {/* 0B. LOGIN OTP VERIFICATION */}
@@ -1627,6 +1569,32 @@ export default function PoliticalPage() {
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
             />
           </div>
+
+          <label htmlFor="petition-department">{copy.departmentLabel} *</label>
+          <select
+            id="petition-department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            required
+          >
+            {PETITION_DEPARTMENTS.map((dept) => (
+              <option key={dept.key} value={dept.key}>
+                {tamil ? dept.ta : dept.en}
+              </option>
+            ))}
+          </select>
+
+          {department === "Others" && (
+            <input
+              type="text"
+              value={otherDepartmentText}
+              onChange={(e) => setOtherDepartmentText(e.target.value)}
+              placeholder={tamil ? "துறையின் பெயரை உள்ளிடவும் (எ.கா: விவசாயம், மீன்வளம்...)" : "Specify department (e.g. Agriculture, Fisheries...)"}
+              maxLength="80"
+              style={{ marginTop: "-8px", marginBottom: "18px" }}
+              autoFocus
+            />
+          )}
 
           <label htmlFor="petition-issue">{copy.subject} *</label>
           <input
@@ -1927,6 +1895,13 @@ export default function PoliticalPage() {
                   <span>{petitionResult.subject}</span>
                 </div>
 
+                {petitionResult.department && (
+                  <div className="portal-field-row">
+                    <label>{copy.departmentLabel}</label>
+                    <span style={{ fontWeight: 600, color: "#8c2024" }}>🏛️ {petitionResult.department}</span>
+                  </div>
+                )}
+
                 <div className="portal-field-row">
                   <label>{copy.details}</label>
                   <span style={{ color: "#54493e", whiteSpace: "normal", fontSize: 11 }}>{petitionResult.description}</span>
@@ -2044,6 +2019,9 @@ export default function PoliticalPage() {
                         )}
                       </div>
                       <div className="portal-mini-subject">{p.subject}</div>
+                      {p.department && (
+                        <div style={{ fontSize: 9, color: "#8c2024", fontWeight: 600, marginTop: 2 }}>🏛️ {p.department}</div>
+                      )}
                     </div>
                     <span className={`portal-status-badge status-${p.status ? p.status.toLowerCase().replace(/\s+/g, '') : 'received'}`} style={{ fontSize: 9, padding: "2px 7px" }}>
                       {p.status}
@@ -2076,493 +2054,6 @@ export default function PoliticalPage() {
             </button>
           )}
         </div>}
-
-        {/* 8. MLA CONSTITUENCY OFFICE ADMIN DASHBOARD (INSIDE SAME POPUP) */}
-        {portalStage === "admin-dashboard" && (
-          <div className="admin-dashboard-body">
-            {/* Top Bar for Admin */}
-            <div className="admin-portal-topbar">
-              <div className="admin-topbar-left">
-                <img src="/hero-thalaivar.png" alt="" className="admin-topbar-emblem" />
-                <div>
-                  <h3 id="admin-portal-title" className="admin-topbar-title">
-                    {tamil ? "சி.டி.ஆர். நிர்மல் குமார் தொகுதி அலுவலகம்" : "Office of CTR Nirmal Kumar"}
-                  </h3>
-                  <span className="admin-topbar-subtitle">
-                    {tamil ? "மனுக்கள் மேலாண்மை மற்றும் கண்காணிப்புப் பலகை" : "Petitions Management & Control Dashboard"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="admin-topbar-right">
-                <button
-                  type="button"
-                  className="admin-btn-action admin-btn-refresh"
-                  onClick={() => fetchAdminPetitions()}
-                  disabled={adminLoading}
-                  title={tamil ? "புதுப்பிக்கவும்" : "Refresh Petitions"}
-                >
-                  <RefreshCw size={14} className={adminLoading ? "spin-icon" : ""} />
-                  <span>{tamil ? "புதுப்பி" : "Refresh"}</span>
-                </button>
-                <button
-                  type="button"
-                  className="admin-btn-action admin-btn-logout"
-                  onClick={handleAdminLogout}
-                  title={tamil ? "வெளியேறு" : "Logout"}
-                >
-                  <LogOut size={14} />
-                  <span>{tamil ? "வெளியேறு" : "Logout"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Stats Ribbon */}
-            <div className="admin-stats-ribbon">
-              <div
-                className={`admin-stat-card ${adminStatusFilter === "ALL" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("ALL")}
-              >
-                <div className="admin-stat-num">{adminStats.total}</div>
-                <div className="admin-stat-label">{tamil ? "மொத்த மனுக்கள்" : "Total Petitions"}</div>
-              </div>
-
-              <div
-                className={`admin-stat-card stat-received ${adminStatusFilter === "Received" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("Received")}
-              >
-                <div className="admin-stat-num">{adminStats.received}</div>
-                <div className="admin-stat-label">{tamil ? "புதியவை (Received)" : "Received"}</div>
-              </div>
-
-              <div
-                className={`admin-stat-card stat-under-review ${adminStatusFilter === "Under Review" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("Under Review")}
-              >
-                <div className="admin-stat-num">{adminStats.underReview}</div>
-                <div className="admin-stat-label">{tamil ? "பரிசீலனை (Under Review)" : "Under Review"}</div>
-              </div>
-
-              <div
-                className={`admin-stat-card stat-in-progress ${adminStatusFilter === "In Progress" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("In Progress")}
-              >
-                <div className="admin-stat-num">{adminStats.inProgress}</div>
-                <div className="admin-stat-label">{tamil ? "நடவடிக்கை (In Progress)" : "In Progress"}</div>
-              </div>
-
-              <div
-                className={`admin-stat-card stat-resolved ${adminStatusFilter === "Resolved" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("Resolved")}
-              >
-                <div className="admin-stat-num">{adminStats.resolved}</div>
-                <div className="admin-stat-label">{tamil ? "தீர்வு (Resolved)" : "Resolved"}</div>
-              </div>
-
-              <div
-                className={`admin-stat-card stat-rejected ${adminStatusFilter === "Rejected" ? "is-active" : ""}`}
-                onClick={() => setAdminStatusFilter("Rejected")}
-              >
-                <div className="admin-stat-num">{adminStats.rejected}</div>
-                <div className="admin-stat-label">{tamil ? "நிராகரிப்பு (Rejected)" : "Rejected"}</div>
-              </div>
-            </div>
-
-            {/* Toolbar */}
-            <div className="admin-toolbar">
-              <div className="admin-search-wrapper">
-                <Search size={16} className="admin-search-icon" />
-                <input
-                  type="text"
-                  placeholder={
-                    tamil
-                      ? "மனு எண் (CTR-...), பெயர், கைபேசி, மின்னஞ்சல் மூலம் தேடுக..."
-                      : "Search by Ref No (CTR-...), Name, Phone, Email, Subject..."
-                  }
-                  value={adminSearch}
-                  onChange={(e) => setAdminSearch(e.target.value)}
-                  className="admin-search-input"
-                />
-                {adminSearch && (
-                  <button
-                    type="button"
-                    className="admin-search-clear"
-                    onClick={() => setAdminSearch("")}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              {/* Filter Pills */}
-              <div className="admin-filter-pills">
-                <span className="admin-filter-pill-label">
-                  <Filter size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-                  {tamil ? "வடிகட்டு:" : "Filter:"}
-                </span>
-                {["ALL", "Received", "Under Review", "In Progress", "Resolved", "Rejected"].map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    className={`admin-filter-pill ${adminStatusFilter === st ? "is-active" : ""}`}
-                    onClick={() => setAdminStatusFilter(st)}
-                  >
-                    {st === "ALL"
-                      ? (tamil ? "அனைத்தும்" : "All")
-                      : st === "Received"
-                      ? (tamil ? "புதியவை" : "Received")
-                      : st === "Under Review"
-                      ? (tamil ? "பரிசீலனையில்" : "Under Review")
-                      : st === "In Progress"
-                      ? (tamil ? "நடவடிக்கையில்" : "In Progress")
-                      : st === "Resolved"
-                      ? (tamil ? "தீர்வு" : "Resolved")
-                      : (tamil ? "நிராகரிக்கப்பட்டது" : "Rejected")}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Main Two-Column Work Area */}
-            <div className="admin-workspace-grid">
-              {/* Column 1: Petitions Feed */}
-              <div className="admin-petitions-feed">
-                <div className="admin-feed-header">
-                  <h4>
-                    <Inbox size={15} style={{ marginRight: 6, verticalAlign: "-2px" }} />
-                    {tamil ? "மனுக்கள் பட்டியல்" : "Submitted Petitions Feed"}
-                  </h4>
-                  <span className="admin-feed-count">
-                    {filteredAdminPetitions.length} / {adminPetitions.length}
-                  </span>
-                </div>
-
-                {adminLoading && adminPetitions.length === 0 ? (
-                  <div className="admin-feed-loading">
-                    <span className="portal-spinner" />
-                    <p>{tamil ? "மனுக்கள் ஏற்றப்படுகின்றன..." : "Loading petitions from database..."}</p>
-                  </div>
-                ) : filteredAdminPetitions.length === 0 ? (
-                  <div className="admin-feed-empty">
-                    <FileText size={36} opacity={0.4} />
-                    <p>{tamil ? "மனுக்கள் எதுவும் பொருந்தவில்லை." : "No petitions match the filter criteria."}</p>
-                  </div>
-                ) : (
-                  <div className="admin-feed-list">
-                    {filteredAdminPetitions.map((p) => {
-                      const isSelected = adminSelectedPetition?.id === p.id;
-                      const statusClass = (p.status || "Received").toLowerCase().replace(/\s+/g, "");
-                      return (
-                        <div
-                          key={p.id}
-                          className={`admin-petition-card ${isSelected ? "is-selected" : ""}`}
-                          onClick={() => handleSelectPetitionForDetail(p)}
-                        >
-                          <div className="admin-card-top-row">
-                            <span className="admin-card-ref">{p.referenceNo}</span>
-                            <span className={`portal-status-badge status-${statusClass}`}>
-                              {p.status}
-                            </span>
-                          </div>
-
-                          <div className="admin-card-petitioner-row">
-                            <span className="admin-card-name">
-                              <User size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-                              {p.petitionerName}
-                            </span>
-                            <span className="admin-card-date">
-                              <Clock size={12} style={{ marginRight: 4, verticalAlign: "-1px" }} />
-                              {formatDateTime(p.createdAt)}
-                            </span>
-                          </div>
-
-                          <div className="admin-card-subject-row">
-                            <strong>{p.subject}</strong>
-                          </div>
-
-                          <div className="admin-card-meta-row">
-                            <span className="admin-card-contact">
-                              {p.phone && <span>📞 {p.phone}</span>}
-                              {p.email && <span>✉️ {p.email}</span>}
-                            </span>
-                            {p.hasAttachment && (
-                              <span className="admin-card-attachment-tag" title={p.attachmentName || "Attachment"}>
-                                <Paperclip size={12} style={{ marginRight: 2 }} />
-                                {tamil ? "ஆவணம்" : "Doc"}
-                              </span>
-                            )}
-                          </div>
-
-                          {p.adminNotes && (
-                            <div className="admin-card-note-preview">
-                              💬 <em>{p.adminNotes}</em>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Column 2: Detailed Petition Inspector & Action Management */}
-              <div className="admin-petition-inspector">
-                {!adminSelectedPetition ? (
-                  <div className="admin-inspector-placeholder">
-                    <div className="placeholder-icon">📋</div>
-                    <h3>{tamil ? "மனுவைத் தேர்ந்தெடுக்கவும்" : "Select a Petition to Inspect"}</h3>
-                    <p>
-                      {tamil
-                        ? "இடது பக்கப் பட்டியலில் இருந்து ஏதேனும் ஒரு மனுவைத் தேர்ந்தெடுத்து அதன் முழு விவரங்கள், பதிவேற்றிய ஆவணங்கள் மற்றும் அலுவலக நடவடிக்கையை நிர்வகிக்கலாம்."
-                        : "Choose any petition from the left list to review complete details, examine supporting documents, and update constituency status."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="admin-inspector-content">
-                    {/* Inspector Header */}
-                    <div className="admin-inspector-header">
-                      <div>
-                        <span className="inspector-ref-badge">{adminSelectedPetition.referenceNo}</span>
-                        <span className="inspector-date">{formatDateTime(adminSelectedPetition.createdAt)}</span>
-                      </div>
-                      <span className={`portal-status-badge status-${(adminSelectedPetition.status || 'received').toLowerCase().replace(/\s+/g, '')}`}>
-                        {adminSelectedPetition.status}
-                      </span>
-                    </div>
-
-                    {/* Petitioner Details Box */}
-                    <div className="inspector-section-card">
-                      <h5>{tamil ? "மனுதாரர் விவரங்கள்" : "Petitioner Information"}</h5>
-                      <div className="inspector-petitioner-grid">
-                        <div className="petitioner-field">
-                          <span className="field-lbl">{tamil ? "பெயர்:" : "Name:"}</span>
-                          <span className="field-val"><strong>{adminSelectedPetition.petitionerName}</strong></span>
-                        </div>
-                        <div className="petitioner-field">
-                          <span className="field-lbl">{tamil ? "தொகுதி:" : "Constituency:"}</span>
-                          <span className="field-val">{adminSelectedPetition.constituency}</span>
-                        </div>
-                        <div className="petitioner-field">
-                          <span className="field-lbl">{tamil ? "கைபேசி எண்:" : "Mobile:"}</span>
-                          <span className="field-val">
-                            {adminSelectedPetition.phone ? (
-                              <a href={`tel:${adminSelectedPetition.phone}`} className="admin-tel-link">
-                                📞 {adminSelectedPetition.phone}
-                              </a>
-                            ) : "—"}
-                          </span>
-                        </div>
-                        <div className="petitioner-field">
-                          <span className="field-lbl">{tamil ? "மின்னஞ்சல்:" : "Email:"}</span>
-                          <span className="field-val">
-                            {adminSelectedPetition.email ? (
-                              <a href={`mailto:${adminSelectedPetition.email}`} className="admin-mail-link">
-                                ✉️ {adminSelectedPetition.email}
-                              </a>
-                            ) : "—"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Grievance Details Box */}
-                    <div className="inspector-section-card">
-                      <h5>{tamil ? "மனுவின் பொருள் & முழு விவரம்" : "Grievance Subject & Full Description"}</h5>
-                      <div className="inspector-subject">
-                        <strong>{adminSelectedPetition.subject}</strong>
-                        {adminSelectedPetition.category && (
-                          <span className="inspector-category-badge">{adminSelectedPetition.category}</span>
-                        )}
-                      </div>
-                      <div className="inspector-description-box">
-                        {adminSelectedPetition.description}
-                      </div>
-                    </div>
-
-                    {/* Supporting Document / Attachment Box */}
-                    <div className="inspector-section-card">
-                      <h5>
-                        <Paperclip size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
-                        {tamil ? "இணைக்கப்பட்ட ஆவணங்கள் / புகைப்படங்கள்" : "Supporting Documents & Attachments"}
-                      </h5>
-
-                      {adminAttachmentLoading ? (
-                        <div className="attachment-loading">
-                          <span className="portal-spinner" />
-                          <span>{tamil ? "இணைப்பு ஆவணம் பதிவிறக்கப்படுகிறது..." : "Loading attachment..."}</span>
-                        </div>
-                      ) : adminAttachmentData ? (
-                        <div className="admin-attachment-preview">
-                          {adminAttachmentData.type?.startsWith("image/") || /\.(jpg|jpeg|png|webp)$/i.test(adminAttachmentData.name || "") ? (
-                            <div className="admin-att-image-box">
-                              <img
-                                src={adminAttachmentData.data}
-                                alt={adminAttachmentData.name}
-                                className="admin-att-img"
-                                onClick={() => setActivePhoto({ src: adminAttachmentData.data, index: 1 })}
-                                title={tamil ? "பெரிதாக்க கிளிக் செய்க" : "Click to view full size"}
-                              />
-                              <div className="admin-att-actions">
-                                <span>{adminAttachmentData.name}</span>
-                                <a
-                                  href={adminAttachmentData.data}
-                                  download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Attachment.jpg`}
-                                  className="portal-download-btn"
-                                >
-                                  <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-                                  {tamil ? "பதிவிறக்கம்" : "Download"}
-                                </a>
-                              </div>
-                            </div>
-                          ) : isVideoAttachment(adminAttachmentData.name, adminAttachmentData.type) ? (
-                            <div className="admin-att-video-box">
-                              <video controls src={adminAttachmentData.data} className="admin-att-video" />
-                              <div className="admin-att-actions">
-                                <span>{adminAttachmentData.name}</span>
-                                <a
-                                  href={adminAttachmentData.data}
-                                  download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Video.mp4`}
-                                  className="portal-download-btn"
-                                >
-                                  <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-                                  {tamil ? "வீடியோவை பதிவிறக்கம்" : "Download Video"}
-                                </a>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="admin-att-file-box">
-                              <FileText size={32} className="admin-file-icon" />
-                              <div className="admin-file-info">
-                                <strong>{adminAttachmentData.name}</strong>
-                                <small>{adminAttachmentData.type || "Document"}</small>
-                              </div>
-                              <a
-                                href={adminAttachmentData.data}
-                                download={adminAttachmentData.name || `Petition_${adminSelectedPetition.referenceNo}_Doc.pdf`}
-                                className="portal-download-btn"
-                              >
-                                <Download size={13} style={{ marginRight: 4, verticalAlign: "-2px" }} />
-                                {tamil ? "பதிவிறக்கம்" : "Download"}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      ) : adminSelectedPetition.hasAttachment ? (
-                        <div className="admin-attachment-hint">
-                          <span>{adminSelectedPetition.attachmentName || (tamil ? "ஆவணம் இணைக்கப்பட்டுள்ளது" : "Attachment available")}</span>
-                        </div>
-                      ) : (
-                        <div className="inspector-no-attachment">
-                          {tamil ? "இணைப்பு ஆவணங்கள் எதுவும் சமர்ப்பிக்கப்படவில்லை." : "No documents or photos were attached."}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Status Update & Official Notes Form */}
-                    <div className="inspector-section-card inspector-action-box">
-                      <h5>
-                        <Scale size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
-                        {tamil ? "அலுவலக நடவடிக்கை & நிலை புதுப்பிப்பு" : "Office Action & Status Update"}
-                      </h5>
-
-                      {adminError && (
-                        <div className="portal-alert-error" role="alert">
-                          <AlertCircle size={14} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
-                          {adminError}
-                        </div>
-                      )}
-                      {adminSuccess && (
-                        <div className="portal-alert-success" role="status">
-                          <Check size={14} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
-                          {adminSuccess}
-                        </div>
-                      )}
-
-                      <form onSubmit={handleAdminUpdateStatus} className="inspector-status-form">
-                        <label htmlFor="inspector-status-select">
-                          {tamil ? "மனுவின் புதிய நிலை:" : "Update Status to:"}
-                        </label>
-                        <select
-                          id="inspector-status-select"
-                          value={adminNewStatus}
-                          onChange={(e) => setAdminNewStatus(e.target.value)}
-                          className="inspector-status-dropdown"
-                        >
-                          <option value="Received">{tamil ? "Received — பெறப்பட்டது" : "Received"}</option>
-                          <option value="Under Review">{tamil ? "Under Review — பரிசீலனையில் உள்ளது" : "Under Review"}</option>
-                          <option value="In Progress">{tamil ? "In Progress — நடவடிக்கை எடுக்கப்படுகிறது" : "In Progress"}</option>
-                          <option value="Resolved">{tamil ? "Resolved — தீர்வு காணப்பட்டது" : "Resolved"}</option>
-                          <option value="Rejected">{tamil ? "Rejected — நிராகரிக்கப்பட்டது" : "Rejected"}</option>
-                        </select>
-
-                        <label htmlFor="inspector-notes-area">
-                          {tamil ? "அலுவலகக் குறிப்பு / நடவடிக்கை விளக்கம் (மனுதாரர் பார்வைக்கு):" : "Official Remarks / Public Notes:"}
-                        </label>
-                        <textarea
-                          id="inspector-notes-area"
-                          rows="3"
-                          value={adminNotesInput}
-                          onChange={(e) => setAdminNotesInput(e.target.value)}
-                          placeholder={
-                            tamil
-                              ? "எ.கா: மனு பரிசீலிக்கப்பட்டு திருப்பரங்குன்றம் நெடுஞ்சாலைத் துறை உதவிப் பொறியாளருக்கு அனுப்பப்பட்டுள்ளது."
-                              : "e.g., Petition inspected and forwarded to Thiruparankundram Highways Division for prompt road restoration."
-                          }
-                          className="inspector-notes-textarea"
-                        />
-
-                        <button
-                          type="submit"
-                          className="inspector-update-btn"
-                          disabled={adminUpdatingStatus}
-                        >
-                          {adminUpdatingStatus ? (
-                            <>
-                              <span className="portal-spinner" />
-                              <span>{tamil ? "புதுப்பிக்கிறது..." : "Updating status..."}</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 size={16} />
-                              <span>{tamil ? "நிலையைப் புதுப்பித்து சேமிக்கவும்" : "Save & Publish Status Update"}</span>
-                            </>
-                          )}
-                        </button>
-                      </form>
-                    </div>
-
-                    {/* Status History Timeline */}
-                    {adminPetitionHistory && adminPetitionHistory.length > 0 && (
-                      <div className="inspector-section-card">
-                        <h5>
-                          <Clock size={14} style={{ marginRight: 5, verticalAlign: "-2px" }} />
-                          {tamil ? "நடவடிக்கை வரலாறு" : "Timeline History"}
-                        </h5>
-                        <div className="inspector-timeline">
-                          {adminPetitionHistory.map((item, idx) => (
-                            <div key={idx} className="inspector-timeline-item">
-                              <div className="timeline-marker" />
-                              <div className="timeline-content">
-                                <div className="timeline-header">
-                                  <span className={`portal-status-badge status-${(item.status || 'received').toLowerCase().replace(/\s+/g, '')}`}>
-                                    {item.status}
-                                  </span>
-                                  <span className="timeline-date">{formatDateTime(item.date)}</span>
-                                </div>
-                                <p className="timeline-comment">{item.comments}</p>
-                                <span className="timeline-by">{item.updatedBy}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </section>
     </div>}
 

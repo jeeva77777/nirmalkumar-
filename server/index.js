@@ -389,7 +389,7 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
  */
 app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
   try {
-    const { verificationToken, email, phone, name, constituency, subject, details, category, attachment } = req.body;
+    const { verificationToken, email, phone, name, constituency, subject, details, category, department, attachment } = req.body;
 
     if (!verificationToken || typeof verificationToken !== 'string') {
       return res.status(401).json({
@@ -490,6 +490,7 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
     const cleanSubject = subject.trim();
     const cleanDetails = details.trim();
     const cleanCategory = category ? category.trim() : 'Public Welfare';
+    const cleanDepartment = department && department.trim() ? department.trim() : 'General Administration';
 
     // Parse optional uploaded document/attachment
     let cleanAttachmentName = null;
@@ -513,9 +514,9 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
 
     // Insert petition
     const [petitionResult] = await pool.query(
-      `INSERT INTO petitions (reference_no, petitioner_id, email, phone, subject, description, category, status, attachment_name, attachment_type, attachment_data)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'Received', ?, ?, ?)`,
-      [referenceNo, petitionerId, cleanEmail || null, cleanPhone || null, cleanSubject, cleanDetails, cleanCategory, cleanAttachmentName, cleanAttachmentType, cleanAttachmentData]
+      `INSERT INTO petitions (reference_no, petitioner_id, email, phone, subject, description, category, department, status, attachment_name, attachment_type, attachment_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Received', ?, ?, ?)`,
+      [referenceNo, petitionerId, cleanEmail || null, cleanPhone || null, cleanSubject, cleanDetails, cleanCategory, cleanDepartment, cleanAttachmentName, cleanAttachmentType, cleanAttachmentData]
     );
 
     const petitionId = petitionResult.insertId;
@@ -537,6 +538,7 @@ app.post('/api/petitions/submit', petitionActionLimiter, async (req, res) => {
       constituency: cleanConstituency,
       subject: cleanSubject,
       category: cleanCategory,
+      department: cleanDepartment,
       details: cleanDetails,
       attachmentName: cleanAttachmentName,
       attachmentType: cleanAttachmentType,
@@ -627,7 +629,7 @@ app.post('/api/petitions/track', petitionActionLimiter, async (req, res) => {
 
     // Query petition and petitioner details
     let matchQuery = `
-      SELECT p.id, p.reference_no, p.subject, p.description, p.category, p.status,
+      SELECT p.id, p.reference_no, p.subject, p.description, p.category, COALESCE(p.department, 'General Administration') AS department, p.status,
              p.admin_notes, p.created_at, p.updated_at, p.email, p.phone,
              p.attachment_name, p.attachment_type, p.attachment_data,
              c.name AS petitioner_name, c.constituency
@@ -672,6 +674,7 @@ app.post('/api/petitions/track', petitionActionLimiter, async (req, res) => {
         subject: petition.subject,
         description: petition.description,
         category: petition.category,
+        department: petition.department || 'General Administration',
         status: petition.status,
         adminNotes: petition.admin_notes,
         createdAt: petition.created_at,
@@ -727,7 +730,7 @@ app.post('/api/citizen/my-petitions', petitionActionLimiter, async (req, res) =>
     }
 
     const [petitions] = await pool.query(
-      `SELECT p.reference_no, p.subject, p.category, p.status, p.created_at, p.attachment_name
+      `SELECT p.reference_no, p.subject, p.category, COALESCE(p.department, 'General Administration') AS department, p.status, p.created_at, p.attachment_name
        FROM petitions p
        LEFT JOIN petitioners c ON p.petitioner_id = c.id
        WHERE LOWER(COALESCE(p.email, '')) = LOWER(?)
@@ -743,6 +746,7 @@ app.post('/api/citizen/my-petitions', petitionActionLimiter, async (req, res) =>
         referenceNo: p.reference_no,
         subject: p.subject,
         category: p.category,
+        department: p.department || 'General Administration',
         status: p.status,
         hasAttachment: !!p.attachment_name,
         attachmentName: p.attachment_name || null,
@@ -880,6 +884,7 @@ app.get('/api/admin/petitions', requireAdminAuth, async (req, res) => {
         p.subject,
         p.description,
         p.category,
+        COALESCE(p.department, 'General Administration') AS department,
         p.status,
         p.admin_notes,
         p.attachment_name,
@@ -928,6 +933,7 @@ app.get('/api/admin/petitions', requireAdminAuth, async (req, res) => {
         subject: r.subject,
         description: r.description,
         category: r.category,
+        department: r.department || 'General Administration',
         status: r.status,
         adminNotes: r.admin_notes,
         hasAttachment: !!r.has_attachment,
@@ -961,6 +967,7 @@ app.get('/api/admin/petitions/:id', requireAdminAuth, async (req, res) => {
         p.subject,
         p.description,
         p.category,
+        COALESCE(p.department, 'General Administration') AS department,
         p.status,
         p.admin_notes,
         p.attachment_name,
@@ -1040,7 +1047,7 @@ app.get('/api/admin/petitions/:id/attachment', requireAdminAuth, async (req, res
 app.post('/api/admin/petitions/:id/update-status', requireAdminAuth, async (req, res) => {
   try {
     const petitionId = parseInt(req.params.id, 10);
-    const { status, adminNotes } = req.body || {};
+    const { status, adminNotes, department } = req.body || {};
 
     const validStatuses = ['Received', 'Under Review', 'In Progress', 'Resolved', 'Rejected'];
     if (!status || !validStatuses.includes(status)) {
@@ -1051,23 +1058,27 @@ app.post('/api/admin/petitions/:id/update-status', requireAdminAuth, async (req,
     }
 
     const cleanNotes = (adminNotes || '').trim();
+    const cleanDept = (department || '').trim();
     const pool = await getPool();
 
-    const [petCheck] = await pool.query('SELECT id, reference_no, email, subject FROM petitions WHERE id = ? LIMIT 1', [petitionId]);
+    const [petCheck] = await pool.query('SELECT id, reference_no, email, subject, department FROM petitions WHERE id = ? LIMIT 1', [petitionId]);
     if (petCheck.length === 0) {
       return res.status(404).json({ success: false, message: 'மனு காணப்படவில்லை.' });
     }
 
     const petition = petCheck[0];
 
-    // Update main petition status and admin notes
+    // Update main petition status, admin notes and department
     await pool.query(
-      `UPDATE petitions SET status = ?, admin_notes = ?, updated_at = NOW() WHERE id = ?`,
-      [status, cleanNotes || null, petitionId]
+      `UPDATE petitions SET status = ?, admin_notes = ?, department = COALESCE(?, department), updated_at = NOW() WHERE id = ?`,
+      [status, cleanNotes || null, cleanDept || null, petitionId]
     );
 
     // Record into status timeline
-    const historyRemark = cleanNotes || `மனுவின் நிலை "${status}" என மாற்றப்பட்டது (Office of CTR Nirmal Kumar).`;
+    const historyRemark = cleanNotes 
+      ? (cleanDept ? `[துறை: ${cleanDept}] ${cleanNotes}` : cleanNotes)
+      : (cleanDept ? `மனு "${cleanDept}" துறைக்கு ஒதுக்கப்பட்டது. நிலை: "${status}".` : `மனுவின் நிலை "${status}" என மாற்றப்பட்டது.`);
+    
     await pool.query(
       `INSERT INTO petition_status_history (petition_id, status, comments, updated_by)
        VALUES (?, ?, ?, 'சி.டி.ஆர். நிர்மல் குமார் அலுவலகம்')`,
@@ -1078,11 +1089,110 @@ app.post('/api/admin/petitions/:id/update-status', requireAdminAuth, async (req,
       success: true,
       message: `மனு ${petition.reference_no} நிலை "${status}" என வெற்றிகரமாக மாற்றப்பட்டது.`,
       status,
-      adminNotes: cleanNotes
+      adminNotes: cleanNotes,
+      department: cleanDept || petition.department,
+      historyItem: {
+        status,
+        comments: historyRemark,
+        updatedBy: 'சி.டி.ஆர். நிர்மல் குமார் அலுவலகம்',
+        date: new Date().toISOString()
+      }
     });
   } catch (error) {
     console.error('[Admin Update Status Error]:', error.message);
     return res.status(500).json({ success: false, message: error.message || 'நிலை மாற்றுவதில் பிழை ஏற்பட்டது.' });
+  }
+});
+
+/**
+ * Admin Reports Summary: Breakdown by Department & Status
+ */
+app.get('/api/admin/reports/summary', requireAdminAuth, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const [deptCounts] = await pool.query(`
+      SELECT 
+        COALESCE(department, 'General Administration') AS department,
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'Received' THEN 1 ELSE 0 END) AS received,
+        SUM(CASE WHEN status = 'Under Review' THEN 1 ELSE 0 END) AS underReview,
+        SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS inProgress,
+        SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved,
+        SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) AS rejected
+      FROM petitions
+      GROUP BY COALESCE(department, 'General Administration')
+      ORDER BY total DESC
+    `);
+
+    const [totalRows] = await pool.query(`
+      SELECT 
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS totalResolved
+      FROM petitions
+    `);
+
+    return res.json({
+      success: true,
+      departmentStats: deptCounts,
+      overall: totalRows[0] || { total: 0, totalResolved: 0 }
+    });
+  } catch (error) {
+    console.error('[Admin Reports Summary Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * Admin Reports CSV Export
+ */
+app.get('/api/admin/reports/csv', requireAdminAuth, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const [rows] = await pool.query(`
+      SELECT 
+        p.reference_no,
+        p.created_at,
+        COALESCE(c.name, 'பொதுமக்கள்') AS petitioner_name,
+        COALESCE(p.phone, c.phone, '') AS phone,
+        COALESCE(p.email, c.email, '') AS email,
+        COALESCE(c.constituency, 'திருப்பரங்குன்றம்') AS constituency,
+        p.subject,
+        p.category,
+        COALESCE(p.department, 'General Administration') AS department,
+        p.status,
+        COALESCE(p.admin_notes, '') AS admin_notes
+      FROM petitions p
+      LEFT JOIN petitioners c ON p.petitioner_id = c.id
+      ORDER BY p.id DESC
+    `);
+
+    const headers = ['Reference No', 'Date', 'Petitioner Name', 'Phone', 'Email', 'Constituency', 'Subject', 'Category', 'Department', 'Status', 'Admin Remarks'];
+    const csvRows = [headers.join(',')];
+
+    for (const r of rows) {
+      const escape = (val) => `"${String(val || '').replace(/"/g, '""')}"`;
+      csvRows.push([
+        escape(r.reference_no),
+        escape(new Date(r.created_at).toISOString().slice(0, 10)),
+        escape(r.petitioner_name),
+        escape(r.phone),
+        escape(r.email),
+        escape(r.constituency),
+        escape(r.subject),
+        escape(r.category),
+        escape(r.department),
+        escape(r.status),
+        escape(r.admin_notes)
+      ].join(','));
+    }
+
+    const csvContent = '\uFEFF' + csvRows.join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Petitions_Report_${new Date().toISOString().slice(0, 10)}.csv"`);
+    return res.send(csvContent);
+  } catch (error) {
+    console.error('[Admin Reports CSV Error]:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

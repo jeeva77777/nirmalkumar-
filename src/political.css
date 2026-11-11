@@ -2864,7 +2864,8 @@ img {
 }
 
 .portal-form input,
-.portal-form textarea {
+.portal-form textarea,
+.portal-form select {
   width: 100%;
   min-height: 48px;
   margin: 0 0 18px;
@@ -2880,7 +2881,8 @@ img {
 }
 
 .portal-form input:focus,
-.portal-form textarea:focus {
+.portal-form textarea:focus,
+.portal-form select:focus {
   border-color: var(--gold-500);
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(226, 175, 39, 0.18);
@@ -7224,4 +7226,195 @@ main[lang="ta"] .portal-secondary {
     font-size: 10px;
   }
 }
+
+/* ============================================================
+   STANDALONE ADMIN LOGIN PAGE (/admin/login)
+   ============================================================ */
+.admin-page-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: radial-gradient(circle at 50% 20%, #4a1014 0%, #1a0507 80%, #0e0203 100%);
+  color: #f7f4ed;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-page-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(238, 200, 75, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.admin-page-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 36px 32px;
+  color: #1e1310;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(238, 200, 75, 0.3);
+  border: 1px solid rgba(226, 175, 39, 0.35);
+  animation: adminScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-page-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.admin-page-emblem-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #eec84b 0%, #a02820 100%);
+  box-shadow: 0 6px 18px rgba(120, 34, 30, 0.35);
+}
+
+.admin-page-emblem {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #ffffff;
+}
+
+.admin-page-kicker {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #8c2024;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.admin-page-title {
+  font-family: var(--font-ta-serif, var(--font-serif));
+  font-size: 19px;
+  font-weight: 700;
+  color: #2c090b;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.admin-page-subtitle {
+  font-size: 11px;
+  color: #6b5a51;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.admin-security-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fbf7ee;
+  border: 1px dashed #d6a738;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  font-size: 11px;
+  color: #744b05;
+  font-weight: 600;
+}
+
+.admin-page-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.admin-page-alert.error {
+  background: #fdf2f2;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+}
+
+.admin-page-alert.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.admin-page-form .admin-form-group {
+  margin-bottom: 16px;
+}
+
+.admin-page-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #ede8de;
+  text-align: center;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b5a51;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.admin-back-link:hover {
+  color: #8c2024;
+}
+
+/* ============================================================
+   STANDALONE ADMIN DASHBOARD PAGE (/admin)
+   ============================================================ */
+.admin-standalone-dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f7f4ed;
+  color: #1e1310;
+}
+
+.admin-standalone-dashboard .admin-portal-topbar {
+  border-radius: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.admin-standalone-dashboard .admin-workspace-grid {
+  flex: 1;
+  height: calc(100vh - 200px);
+}
+
+.admin-btn-site {
+  text-decoration: none;
+}
+
+.admin-page-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #f7f4ed;
+  color: #2c090b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 

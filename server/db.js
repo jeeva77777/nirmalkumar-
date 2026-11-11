@@ -211,6 +211,12 @@ async function createTables() {
       if (attCols.length === 0) {
         await conn.query(`ALTER TABLE petitions ADD COLUMN attachment_name VARCHAR(255) NULL, ADD COLUMN attachment_type VARCHAR(100) NULL, ADD COLUMN attachment_data LONGTEXT NULL`);
       }
+
+      // Migration: Department classification and assignment
+      const [deptCols] = await conn.query(`SHOW COLUMNS FROM petitions LIKE 'department'`);
+      if (deptCols.length === 0) {
+        await conn.query(`ALTER TABLE petitions ADD COLUMN department VARCHAR(100) DEFAULT 'General Administration' AFTER category`);
+      }
     } catch (migErr) {
       console.warn('[Database Migration Notice]: petitions schema check:', migErr.message);
     }
